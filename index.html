@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>瞬間判断トレーニング</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 10px; }
+  #counter { margin-bottom: 10px; font-size: 1rem; }
+  #stimulus {
+    height: 150px;
+    font-size: 100px;
+    line-height: 150px;
+  }
+  .level-buttons, .buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  button {
+    font-size: 1.1rem;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .level { background: #dfe6e9; }
+  .selected { background: #00b894; color: #fff; }
+  #fore { background: #ff7675; color: #fff; width: 140px; }
+  #back { background: #74b9ff; color: #fff; width: 140px; }
+  #start { background: #55efc4; margin-top: 15px; }
+  #result { margin-top: 20px; font-size: 1.2rem; }
+  #history {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #555;
+    text-align: left;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>瞬間判断トレーニング</h1>
+<div id="counter">レベルを選んでスタート</div>
+
+<div class="level-buttons">
+  <button class="level selected" data-time="800" data-name="初級">初級</button>
+  <button class="level" data-time="500" data-name="中級">中級</button>
+  <button class="level" data-time="300" data-name="上級">上級</button>
+</div>
+
+<div id="stimulus"></div>
+
+<button id="start">スタート</button>
+
+<div class="buttons" style="display:none;">
+  <button id="fore">フォア</button>
+  <button id="back">バック</button>
+</div>
+
+<div id="result"></div>
+<div id="history"></div>
+
+<script>
+const TOTAL = 10;
+let DISPLAY_TIME = 800;
+let LEVEL_NAME = "初級";
+
+let current = 0;
+let correct = 0;
+let startTime = 0;
+let reactionTimes = [];
+let answer = "";
+let playing = false;
+
+const stimulusEl = document.getElementById("stimulus");
+const counterEl = document.getElementById("counter");
+const resultEl = document.getElementById("result");
+const historyEl = document.getElementById("history");
+const buttonsEl = document.querySelector(".buttons");
+const startBtn = document.getElementById("start");
+const levelBtns = document.querySelectorAll(".level");
+
+// 効果音（ブラウザ内蔵）
+const soundOK = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=");
+const soundNG = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=");
+const soundEnd = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=");
+
+// 履歴表示
+function loadHistory() {
+  const data = JSON.parse(localStorage.getItem("history") || "[]");
+  if (data.length === 0) {
+    historyEl.textContent = "";
+    return;
+  }
+  historyEl.innerHTML = "<strong>直近の成績</strong><br>" +
+    data.map(d =>
+      `${d.date}｜${d.level}｜${d.correct}/10｜${d.avg}ms`
+    ).join("<br>");
+}
+loadHistory();
+
+// レベル選択
+levelBtns.forEach(btn => {
+  btn.onclick = () => {
+    levelBtns.forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    DISPLAY_TIME = Number(btn.dataset.time);
+    LEVEL_NAME = btn.dataset.name;
+  };
+});
+
+function startGame() {
+  current = 0;
+  correct = 0;
+  reactionTimes = [];
+  playing = true;
+  resultEl.textContent = "";
+  startBtn.style.display = "none";
+  document.querySelector(".level-buttons").style.display = "none";
+  buttonsEl.style.display = "flex";
+  nextQuestion();
+}
+
+function nextQuestion() {
+  resultEl.textContent = "";
+  stimulusEl.textContent = "";
+
+  if (current >= TOTAL) {
+    showFinalResult();
+    return;
+  }
+
+  counterEl.textContent = `問題 ${current + 1} / ${TOTAL}`;
+
+  setTimeout(() => {
+    const isFore = Math.random() < 0.5;
+    answer = isFore ? "fore" : "back";
+    stimulusEl.textContent = "●";
+    stimulusEl.style.color = isFore ? "red" : "blue";
+    startTime = performance.now();
+
+    setTimeout(() => {
+      stimulusEl.textContent = "";
+    }, DISPLAY_TIME);
+  }, 500);
+}
+
+function judge(userAnswer) {
+  if (!playing || !startTime) return;
+
+  const reaction = performance.now() - startTime;
+  reactionTimes.push(reaction);
+
+  if (userAnswer === answer) {
+    correct++;
+    resultEl.textContent = "○ 正解";
+    soundOK.play();
+  } else {
+    resultEl.textContent = "× 不正解";
+    soundNG.play();
+  }
+
+  current++;
+  startTime = 0;
+  setTimeout(nextQuestion, 700);
+}
+
+function showFinalResult() {
+  playing = false;
+  const avg = Math.round(
+    reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length
+  );
+
+  soundEnd.play();
+
+  const history = JSON.parse(localStorage.getItem("history") || "[]");
+  history.unshift({
+    date: new Date().toLocaleDateString(),
+    level: LEVEL_NAME,
+    correct: correct,
+    avg: avg
+  });
+  localStorage.setItem("history", JSON.stringify(history.slice(0, 3)));
+
+  loadHistory();
+
+  stimulusEl.textContent = "終了";
+  counterEl.textContent = "おつかれさまでした";
+  resultEl.innerHTML =
+    `正答率：${correct} / ${TOTAL}<br>平均反応時間：${avg} ms`;
+
+  buttonsEl.style.display = "none";
+  startBtn.style.display = "inline-block";
+  document.querySelector(".level-buttons").style.display = "flex";
+}
+
+startBtn.onclick = startGame;
+document.getElementById("fore").onclick = () => judge("fore");
+document.getElementById("back").onclick = () => judge("back");
+</script>
+
+</body>
+</html>
