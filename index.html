@@ -1,3 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卓球 瞬間判断トレーニング</title>
+
+<style>
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background: #111;
+  color: #fff;
+  margin: 0;
+}
+
+#game { padding: 20px; }
+
+.arrow {
+  font-size: 100px;
+  margin: 30px 0;
+}
+
+#feedback {
+  font-size: 40px;
+  height: 50px;
+}
+
+.correct { color: #00ff99; }
+.wrong { color: #ff5555; }
+
+button {
+  font-size: 22px;
+  padding: 15px 25px;
+  margin: 10px;
+}
+
+.hidden { display: none; }
+
+#ranking {
+  text-align: left;
+  max-width: 300px;
+  margin: auto;
+}
+</style>
+</head>
+
+<body>
+
+<div id="startScreen">
+  <h1>🏓 瞬間判断トレーニング</h1>
+  <input id="playerName" placeholder="名前を入力" />
+  <br><br>
+  <button onclick="startGame()">スタート</button>
+</div>
+
+<div id="game" class="hidden">
+  👤 <span id="nameDisplay"></span><br>
+  ⏱ 残り <span id="time">60</span> 秒<br>
+  🎯 レベル <span id="level">1</span><br>
+  🔥 連続 <span id="combo">0</span><br>
+  ⭐ スコア <span id="score">1.0</span>
+
+  <div id="arrow" class="arrow"></div>
+  <div id="feedback"></div>
+
+  <button onclick="answer('left')">←</button>
+  <button onclick="answer('up')">↑</button>
+  <button onclick="answer('right')">→</button>
+</div>
+
+<div id="result" class="hidden">
+  <h2>🎉 結果</h2>
+  <p id="finalScore"></p>
+  <button onclick="location.reload()">もう一度</button>
+</div>
+
 <script>
 let level = 1;
 let combo = 0;
@@ -11,6 +88,7 @@ let state = 'idle'; // idle | showing | judging
 const arrows = ['left','up','right'];
 const arrowIcons = { left:'←', up:'↑', right:'→' };
 
+// レベル別（やさしめ設定）
 const showTimes = [1500,1300,1100,900,750,600,450];
 const coolTimes = [600,550,500,450,400,350,300];
 
@@ -94,3 +172,6 @@ function endGame() {
   document.getElementById('finalScore').textContent = `スコア：${final}`;
 }
 </script>
+
+</body>
+</html>
