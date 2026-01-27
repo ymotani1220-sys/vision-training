@@ -36,11 +36,18 @@ button {
 }
 
 .hidden { display: none; }
+
+#ranking {
+  text-align: left;
+  max-width: 320px;
+  margin: 10px auto;
+}
 </style>
 </head>
 
 <body>
 
+<!-- スタート画面 -->
 <div id="startScreen">
   <h1>🏓 瞬間判断トレーニング</h1>
   <input id="playerName" placeholder="名前を入力" />
@@ -48,6 +55,7 @@ button {
   <button onclick="startGame()">スタート</button>
 </div>
 
+<!-- ゲーム画面 -->
 <div id="game" class="hidden">
   👤 <span id="nameDisplay"></span><br>
   ⏱ 残り <span id="time">60</span> 秒<br>
@@ -63,41 +71,40 @@ button {
   <button onclick="answer('right')">→</button>
 </div>
 
+<!-- 結果＆ランキング -->
 <div id="result" class="hidden">
   <h2>🎉 結果</h2>
   <p id="finalScore"></p>
+
+  <h3>🏆 ランキング TOP100</h3>
+  <ol id="ranking"></ol>
+
   <button onclick="location.reload()">もう一度</button>
 </div>
 
 <script>
+/* ===== 変数 ===== */
 let level = 1;
 let combo = 0;
 let maxCombo = 0;
 let time = 60;
 let currentAnswer = '';
-let timer;
+let timer = null;
 let player = '';
-let state = 'idle';
-
-let showTimer = null;
-let nextTimer = null;
+let state = 'idle'; // idle / showing / judging
 
 const arrows = ['left','up','right'];
 const arrowIcons = { left:'←', up:'↑', right:'→' };
 
+/* レベル別（やさしめ〜上級） */
 const showTimes = [1500,1300,1100,900,750,600,450];
 const coolTimes = [600,550,500,450,400,350,300];
 
-function clearTimers() {
-  if (showTimer) clearTimeout(showTimer);
-  if (nextTimer) clearTimeout(nextTimer);
-  showTimer = null;
-  nextTimer = null;
-}
-
+/* ===== ゲーム開始 ===== */
 function startGame() {
   player = document.getElementById('playerName').value || 'ゲスト';
   document.getElementById('nameDisplay').textContent = player;
+
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
 
@@ -105,35 +112,38 @@ function startGame() {
   timer = setInterval(countDown, 1000);
 }
 
+/* ===== カウントダウン ===== */
 function countDown() {
   time--;
   document.getElementById('time').textContent = time;
   if (time <= 0) endGame();
 }
 
+/* ===== 次の問題 ===== */
 function nextQuestion() {
-  clearTimers();
   state = 'showing';
   document.getElementById('feedback').textContent = '';
 
-  currentAnswer = arrows[Math.floor(Math.random() * 3)];
+  currentAnswer = arrows[Math.floor(Math.random() * arrows.length)];
   const arrowEl = document.getElementById('arrow');
   arrowEl.textContent = arrowIcons[currentAnswer];
 
-  showTimer = setTimeout(() => {
-    if (state === 'showing') judge(false);
+  setTimeout(() => {
+    if (state === 'showing') {
+      judge(false); // 時間切れ
+    }
   }, showTimes[level - 1]);
 }
 
+/* ===== 回答 ===== */
 function answer(choice) {
   if (state !== 'showing') return;
   judge(choice === currentAnswer);
 }
 
+/* ===== 判定 ===== */
 function judge(correct) {
-  clearTimers();
   state = 'judging';
-
   const fb = document.getElementById('feedback');
   document.getElementById('arrow').textContent = '';
 
@@ -142,6 +152,7 @@ function judge(correct) {
     fb.className = 'correct';
     combo++;
     if (combo > maxCombo) maxCombo = combo;
+
     if (combo >= 5 && level < 7) {
       level++;
       combo = 0;
@@ -154,26 +165,58 @@ function judge(correct) {
 
   updateDisplay();
 
-  nextTimer = setTimeout(() => {
+  setTimeout(() => {
     state = 'idle';
     nextQuestion();
   }, coolTimes[level - 1]);
 }
 
+/* ===== 表示更新 ===== */
 function updateDisplay() {
   document.getElementById('level').textContent = level;
   document.getElementById('combo').textContent = combo;
   document.getElementById('score').textContent = `${level}.${maxCombo}`;
 }
 
+/* ===== 終了 ===== */
 function endGame() {
-  clearTimers();
   clearInterval(timer);
+
+  saveScore();
+  showRanking();
+
   document.getElementById('game').classList.add('hidden');
   document.getElementById('result').classList.remove('hidden');
 
   document.getElementById('finalScore').textContent =
     `スコア：${level}.${maxCombo}`;
+}
+
+/* ===== ランキング保存 ===== */
+function saveScore() {
+  const scoreValue = Number(`${level}.${maxCombo}`);
+  const record = { name: player, score: scoreValue };
+
+  let ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+  ranking.push(record);
+
+  ranking.sort((a, b) => b.score - a.score);
+  ranking = ranking.slice(0, 100);
+
+  localStorage.setItem('ranking', JSON.stringify(ranking));
+}
+
+/* ===== ランキング表示 ===== */
+function showRanking() {
+  const ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+  const list = document.getElementById('ranking');
+  list.innerHTML = '';
+
+  ranking.forEach((r, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${i + 1}. ${r.name}（${r.score}）`;
+    list.appendChild(li);
+  });
 }
 </script>
 
