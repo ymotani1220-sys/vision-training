@@ -20,7 +20,20 @@ body {
 
 .arrow {
   font-size: 100px;
-  margin: 40px 0;
+  margin: 30px 0;
+}
+
+#feedback {
+  font-size: 40px;
+  height: 50px;
+}
+
+.correct {
+  color: #00ff99;
+}
+
+.wrong {
+  color: #ff5555;
 }
 
 button {
@@ -60,6 +73,7 @@ button {
   </div>
 
   <div id="arrow" class="arrow">←</div>
+  <div id="feedback"></div>
 
   <button onclick="answer('left')">←</button>
   <button onclick="answer('up')">↑</button>
@@ -91,8 +105,6 @@ let waiting = false;
 
 const arrows = ['left', 'up', 'right'];
 const arrowIcons = { left: '←', up: '↑', right: '→' };
-
-// レベル別クールタイム（ms）
 const coolTimes = [1200,1100,1000,900,800,700,600];
 
 function startGame() {
@@ -114,6 +126,7 @@ function countDown() {
 
 function nextQuestion() {
   waiting = false;
+  document.getElementById('feedback').textContent = '';
   currentAnswer = arrows[Math.floor(Math.random() * 3)];
   document.getElementById('arrow').textContent = arrowIcons[currentAnswer];
 }
@@ -122,7 +135,11 @@ function answer(choice) {
   if (waiting) return;
   waiting = true;
 
+  const feedback = document.getElementById('feedback');
+
   if (choice === currentAnswer) {
+    feedback.textContent = '✅';
+    feedback.className = 'correct';
     combo++;
     if (combo > maxCombo) maxCombo = combo;
 
@@ -131,6 +148,8 @@ function answer(choice) {
       combo = 0;
     }
   } else {
+    feedback.textContent = '❌';
+    feedback.className = 'wrong';
     combo = 0;
   }
 
@@ -160,13 +179,9 @@ function saveScore(score) {
   let data = JSON.parse(localStorage.getItem('scores') || '[]');
   data.push({ name: player, score: score, time: Date.now() });
 
-  data.sort((a,b) => {
-    const sa = parseFloat(a.score);
-    const sb = parseFloat(b.score);
-    return sb - sa;
-  });
-
+  data.sort((a,b) => parseFloat(b.score) - parseFloat(a.score));
   data = data.slice(0,100);
+
   localStorage.setItem('scores', JSON.stringify(data));
 }
 
