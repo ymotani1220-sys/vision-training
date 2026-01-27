@@ -36,12 +36,6 @@ button {
 }
 
 .hidden { display: none; }
-
-#ranking {
-  text-align: left;
-  max-width: 300px;
-  margin: auto;
-}
 </style>
 </head>
 
@@ -83,14 +77,23 @@ let time = 60;
 let currentAnswer = '';
 let timer;
 let player = '';
-let state = 'idle'; // idle | showing | judging
+let state = 'idle';
+
+let showTimer = null;
+let nextTimer = null;
 
 const arrows = ['left','up','right'];
 const arrowIcons = { left:'←', up:'↑', right:'→' };
 
-// レベル別（やさしめ設定）
 const showTimes = [1500,1300,1100,900,750,600,450];
 const coolTimes = [600,550,500,450,400,350,300];
+
+function clearTimers() {
+  if (showTimer) clearTimeout(showTimer);
+  if (nextTimer) clearTimeout(nextTimer);
+  showTimer = null;
+  nextTimer = null;
+}
 
 function startGame() {
   player = document.getElementById('playerName').value || 'ゲスト';
@@ -109,6 +112,7 @@ function countDown() {
 }
 
 function nextQuestion() {
+  clearTimers();
   state = 'showing';
   document.getElementById('feedback').textContent = '';
 
@@ -116,10 +120,8 @@ function nextQuestion() {
   const arrowEl = document.getElementById('arrow');
   arrowEl.textContent = arrowIcons[currentAnswer];
 
-  setTimeout(() => {
-    if (state === 'showing') {
-      judge(false); // 時間切れミス
-    }
+  showTimer = setTimeout(() => {
+    if (state === 'showing') judge(false);
   }, showTimes[level - 1]);
 }
 
@@ -129,7 +131,9 @@ function answer(choice) {
 }
 
 function judge(correct) {
+  clearTimers();
   state = 'judging';
+
   const fb = document.getElementById('feedback');
   document.getElementById('arrow').textContent = '';
 
@@ -138,7 +142,6 @@ function judge(correct) {
     fb.className = 'correct';
     combo++;
     if (combo > maxCombo) maxCombo = combo;
-
     if (combo >= 5 && level < 7) {
       level++;
       combo = 0;
@@ -151,7 +154,7 @@ function judge(correct) {
 
   updateDisplay();
 
-  setTimeout(() => {
+  nextTimer = setTimeout(() => {
     state = 'idle';
     nextQuestion();
   }, coolTimes[level - 1]);
@@ -164,12 +167,13 @@ function updateDisplay() {
 }
 
 function endGame() {
+  clearTimers();
   clearInterval(timer);
   document.getElementById('game').classList.add('hidden');
   document.getElementById('result').classList.remove('hidden');
 
-  const final = `${level}.${maxCombo}`;
-  document.getElementById('finalScore').textContent = `スコア：${final}`;
+  document.getElementById('finalScore').textContent =
+    `スコア：${level}.${maxCombo}`;
 }
 </script>
 
