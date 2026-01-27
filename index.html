@@ -2,226 +2,188 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>卓球 瞬間判断トレーニング</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卓球 瞬間判断トレーニング</title>
 
 <style>
-  body {
-    margin: 0;
-    font-family: sans-serif;
-    text-align: center;
-    user-select: none;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    transition: background-image 0.5s ease;
-  }
-  .overlay {
-    background: rgba(255,255,255,0.85);
-    min-height: 100vh;
-    padding-top: 10px;
-  }
-  h1 { font-size: 24px; }
-  button {
-    font-size: 20px;
-    padding: 10px 18px;
-    margin: 6px;
-  }
-  #target {
-    font-size: 90px;
-    margin: 20px;
-    display: none;
-  }
-  #timer {
-    font-size: 22px;
-    font-weight: bold;
-  }
-  #result { font-size: 22px; }
-  #combo { font-size: 24px; color: red; }
-  #levelup { font-size: 26px; color: green; }
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background: #111;
+  color: #fff;
+  margin: 0;
+}
+
+#game {
+  padding: 20px;
+}
+
+.arrow {
+  font-size: 100px;
+  margin: 40px 0;
+}
+
+button {
+  font-size: 22px;
+  padding: 15px 25px;
+  margin: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+#ranking {
+  text-align: left;
+  max-width: 300px;
+  margin: auto;
+}
 </style>
 </head>
 
 <body>
 
-<div class="overlay">
-
-<h1>🏓 卓球 瞬間判断トレーニング</h1>
-<p id="levelDisplay">Lv1</p>
-<p id="timer">⏱ 60秒</p>
-
-<button onclick="startGame()">▶ スタート</button>
-
-<div id="target"></div>
-
-<div>
-  <button onclick="judge('←')">←</button>
-  <button onclick="judge('↑')">↑</button>
-  <button onclick="judge('→')">→</button>
+<div id="startScreen">
+  <h1>🏓 瞬間判断トレーニング</h1>
+  <input id="playerName" placeholder="名前を入力" />
+  <br><br>
+  <button onclick="startGame()">スタート</button>
 </div>
 
-<div id="result"></div>
-<div id="combo"></div>
-<div id="levelup"></div>
+<div id="game" class="hidden">
+  <div>
+    👤 <span id="nameDisplay"></span><br>
+    ⏱ 残り <span id="time">60</span> 秒<br>
+    🎯 レベル <span id="level">1</span><br>
+    🔥 連続 <span id="combo">0</span><br>
+    ⭐ スコア <span id="score">1.0</span>
+  </div>
 
+  <div id="arrow" class="arrow">←</div>
+
+  <button onclick="answer('left')">←</button>
+  <button onclick="answer('up')">↑</button>
+  <button onclick="answer('right')">→</button>
+</div>
+
+<div id="result" class="hidden">
+  <h2>🎉 結果</h2>
+  <p id="finalScore"></p>
+  <button onclick="showRanking()">ランキングを見る</button>
+  <button onclick="location.reload()">もう一度</button>
+</div>
+
+<div id="ranking" class="hidden">
+  <h2>🏆 ランキング</h2>
+  <ol id="rankList"></ol>
+  <button onclick="location.reload()">戻る</button>
 </div>
 
 <script>
 let level = 1;
-let answer = "";
-let visible = false;
 let combo = 0;
+let maxCombo = 0;
+let time = 60;
+let currentAnswer = '';
+let timer;
+let player = '';
+let waiting = false;
 
-let gameTime = 60;
-let timerInterval = null;
-let gameActive = false;
+const arrows = ['left', 'up', 'right'];
+const arrowIcons = { left: '←', up: '↑', right: '→' };
 
-// レベル設定
-const levelSettings = {
-  1:{time:1500,choices:["←","→"], coolOk:1500, coolNg:1500},
-  2:{time:1200,choices:["←","→"], coolOk:1300, coolNg:1300},
-  3:{time:900, choices:["←","→"], coolOk:1100, coolNg:1100},
-  4:{time:700, choices:["←","→"], coolOk:900,  coolNg:900},
-  5:{time:550, choices:["←","↑","→"], coolOk:700,  coolNg:700},
-  6:{time:400, choices:["←","↑","→"], coolOk:500,  coolNg:500},
-  7:{time:280, choices:["←","↑","→"], coolOk:350,  coolNg:350}
-};
+// レベル別クールタイム（ms）
+const coolTimes = [1200,1100,1000,900,800,700,600];
 
-// 🔊 Audio
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(freq, dur){
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.frequency.value = freq;
-  o.connect(g);
-  g.connect(audioCtx.destination);
-  o.start();
-  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-  o.stop(audioCtx.currentTime + dur);
+function startGame() {
+  player = document.getElementById('playerName').value || 'ゲスト';
+  document.getElementById('nameDisplay').textContent = player;
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+
+  nextQuestion();
+  timer = setInterval(countDown, 1000);
 }
 
-// 🎨 背景
-function updateBackground(){
-  document.body.style.backgroundImage =
-    `url('images/bg_lv${level}.png')`;
+function countDown() {
+  time--;
+  document.getElementById('time').textContent = time;
+  if (time <= 0) endGame();
 }
 
-function updateLevelDisplay(){
-  document.getElementById("levelDisplay").textContent = "Lv" + level;
-  updateBackground();
+function nextQuestion() {
+  waiting = false;
+  currentAnswer = arrows[Math.floor(Math.random() * 3)];
+  document.getElementById('arrow').textContent = arrowIcons[currentAnswer];
 }
 
-// ⏱ タイマー
-function startTimer(){
-  gameTime = 60;
-  document.getElementById("timer").textContent = "⏱ 60秒";
+function answer(choice) {
+  if (waiting) return;
+  waiting = true;
 
-  timerInterval = setInterval(() => {
-    gameTime--;
-    document.getElementById("timer").textContent =
-      "⏱ " + gameTime + "秒";
-
-    if(gameTime <= 0){
-      endGame();
-    }
-  }, 1000);
-}
-
-function endGame(){
-  clearInterval(timerInterval);
-  gameActive = false;
-  visible = false;
-  document.getElementById("target").style.display = "none";
-  document.getElementById("result").textContent =
-    "⏱ 終了！ 到達レベル：Lv" + level;
-  document.getElementById("combo").textContent = "";
-  document.getElementById("levelup").textContent = "";
-  playSound(300, 0.6);
-}
-
-// ▶ スタート
-function startGame(){
-  if(gameActive) return; // ← プレイ中は無効
-
-  audioCtx.resume();
-  clearInterval(timerInterval);
-
-  level = 1;
-  combo = 0;
-  gameActive = true;
-
-  document.getElementById("result").textContent = "";
-  document.getElementById("combo").textContent = "";
-  document.getElementById("levelup").textContent = "";
-
-  updateLevelDisplay();
-  startTimer();
-
-  setTimeout(showTarget, 800);
-}
-
-function showTarget(){
-  if(!gameActive) return;
-
-  const setting = levelSettings[level];
-  answer = setting.choices[
-    Math.floor(Math.random()*setting.choices.length)
-  ];
-
-  const t = document.getElementById("target");
-  t.textContent = answer;
-  t.style.display = "block";
-  visible = true;
-
-  setTimeout(()=>{
-    if(!visible || !gameActive) return;
-    visible = false;
-    combo = 0;
-    t.style.display = "none";
-    playSound(150,0.3);
-    document.getElementById("result").textContent="❌ 遅い！";
-    document.getElementById("combo").textContent="";
-    setTimeout(showTarget, setting.coolNg);
-  }, setting.time);
-}
-
-function judge(select){
-  if(!visible || !gameActive) return;
-
-  visible = false;
-  document.getElementById("target").style.display="none";
-
-  const setting = levelSettings[level];
-
-  if(select===answer){
+  if (choice === currentAnswer) {
     combo++;
-    playSound(600,0.15);
-    document.getElementById("result").textContent="⭕ 正解！";
-    document.getElementById("combo").textContent =
-      combo+" 連続正解";
+    if (combo > maxCombo) maxCombo = combo;
 
-    if(combo>=5){
-      combo=0;
-      if(level<7){
-        level++;
-        playSound(1000,0.4);
-        document.getElementById("levelup").textContent =
-          "🎉 レベルアップ！ Lv"+level;
-        updateLevelDisplay();
-      }
+    if (combo >= 5 && level < 7) {
+      level++;
+      combo = 0;
     }
-    setTimeout(showTarget, setting.coolOk);
-
-  }else{
-    combo=0;
-    playSound(200,0.3);
-    document.getElementById("result").textContent="❌ ミス";
-    document.getElementById("combo").textContent="";
-    setTimeout(showTarget, setting.coolNg);
+  } else {
+    combo = 0;
   }
+
+  updateDisplay();
+
+  setTimeout(nextQuestion, coolTimes[level - 1]);
 }
 
-updateLevelDisplay();
+function updateDisplay() {
+  document.getElementById('level').textContent = level;
+  document.getElementById('combo').textContent = combo;
+  document.getElementById('score').textContent = `${level}.${maxCombo}`;
+}
+
+function endGame() {
+  clearInterval(timer);
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('result').classList.remove('hidden');
+
+  const final = `${level}.${maxCombo}`;
+  document.getElementById('finalScore').textContent = `スコア：${final}`;
+
+  saveScore(final);
+}
+
+function saveScore(score) {
+  let data = JSON.parse(localStorage.getItem('scores') || '[]');
+  data.push({ name: player, score: score, time: Date.now() });
+
+  data.sort((a,b) => {
+    const sa = parseFloat(a.score);
+    const sb = parseFloat(b.score);
+    return sb - sa;
+  });
+
+  data = data.slice(0,100);
+  localStorage.setItem('scores', JSON.stringify(data));
+}
+
+function showRanking() {
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('ranking').classList.remove('hidden');
+
+  const list = document.getElementById('rankList');
+  list.innerHTML = '';
+
+  const data = JSON.parse(localStorage.getItem('scores') || '[]');
+  data.forEach(d => {
+    const li = document.createElement('li');
+    li.textContent = `${d.name}　${d.score}`;
+    list.appendChild(li);
+  });
+}
 </script>
 
 </body>
