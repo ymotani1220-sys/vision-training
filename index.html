@@ -9,8 +9,11 @@
     font-family: sans-serif;
     text-align: center;
     background: #eef7ff;
+    user-select: none;
   }
-  h1 { font-size: 28px; }
+  h1 {
+    font-size: 28px;
+  }
   button {
     font-size: 22px;
     padding: 14px 24px;
@@ -56,18 +59,21 @@ let startTime = 0;
 let combo = 0;
 let visible = false;
 
-// 効果音（iPhone対応）
+// ★ iPhone対応：AudioContextはユーザー操作で起動する
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(freq, duration) {
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.frequency.value = freq;
+  osc.type = "sine";
   osc.connect(gain);
   gain.connect(audioCtx.destination);
   osc.start();
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(
-    0.0001, audioCtx.currentTime + duration
+    0.0001,
+    audioCtx.currentTime + duration
   );
   osc.stop(audioCtx.currentTime + duration);
 }
@@ -79,8 +85,13 @@ function setLevel(time) {
 }
 
 function startGame() {
+  // ★ これが無いとiPhoneでは音が鳴らない
+  audioCtx.resume();
+
   document.getElementById("result").textContent = "";
+  document.getElementById("combo").textContent = "";
   visible = false;
+
   const target = document.getElementById("target");
   target.style.display = "none";
 
@@ -90,17 +101,22 @@ function startGame() {
     startTime = Date.now();
 
     setTimeout(() => {
+      if (!visible) return;
+
+      // 遅かった＝ミス
       target.style.display = "none";
       visible = false;
       startTime = 0;
       combo = 0;
-      document.getElementById("combo").textContent = "";
-      playSound(150, 0.3); // ミス音
+      playSound(150, 0.3);
       document.getElementById("result").textContent = "❌ 遅い！";
+      document.getElementById("combo").textContent = "";
     }, displayTime);
+
   }, Math.random() * 1000 + 500);
 }
 
+// 画面タップで判定
 document.body.addEventListener("click", () => {
   if (!visible) return;
 
