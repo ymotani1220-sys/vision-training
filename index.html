@@ -16,32 +16,26 @@
     background-repeat: no-repeat;
     transition: background-image 0.5s ease;
   }
-
   .overlay {
     background: rgba(255,255,255,0.85);
     min-height: 100vh;
     padding-top: 10px;
   }
-
   h1 { font-size: 24px; }
-
   button {
     font-size: 20px;
     padding: 10px 18px;
     margin: 6px;
   }
-
   #target {
     font-size: 90px;
     margin: 20px;
     display: none;
   }
-
   #timer {
     font-size: 22px;
     font-weight: bold;
   }
-
   #result { font-size: 22px; }
   #combo { font-size: 24px; color: red; }
   #levelup { font-size: 26px; color: green; }
@@ -53,9 +47,8 @@
 <div class="overlay">
 
 <h1>🏓 卓球 瞬間判断トレーニング</h1>
-
 <p id="levelDisplay">Lv1</p>
-<p id="timer">⏱ 40秒</p>
+<p id="timer">⏱ 60秒</p>
 
 <button onclick="startGame()">▶ スタート</button>
 
@@ -79,19 +72,19 @@ let answer = "";
 let visible = false;
 let combo = 0;
 
-let gameTime = 40;
+let gameTime = 60;
 let timerInterval = null;
 let gameActive = false;
 
 // レベル設定
 const levelSettings = {
-  1:{time:1500,choices:["←","→"], coolOk:1500, coolNg:2000},
-  2:{time:1200,choices:["←","→"], coolOk:1300, coolNg:1800},
-  3:{time:900, choices:["←","→"], coolOk:1100, coolNg:1600},
-  4:{time:700, choices:["←","→"], coolOk:900,  coolNg:1400},
-  5:{time:550, choices:["←","↑","→"], coolOk:700,  coolNg:1200},
-  6:{time:400, choices:["←","↑","→"], coolOk:500,  coolNg:1000},
-  7:{time:280, choices:["←","↑","→"], coolOk:350,  coolNg:800}
+  1:{time:1500,choices:["←","→"], coolOk:1500, coolNg:1500},
+  2:{time:1200,choices:["←","→"], coolOk:1300, coolNg:1300},
+  3:{time:900, choices:["←","→"], coolOk:1100, coolNg:1100},
+  4:{time:700, choices:["←","→"], coolOk:900,  coolNg:900},
+  5:{time:550, choices:["←","↑","→"], coolOk:700,  coolNg:700},
+  6:{time:400, choices:["←","↑","→"], coolOk:500,  coolNg:500},
+  7:{time:280, choices:["←","↑","→"], coolOk:350,  coolNg:350}
 };
 
 // 🔊 Audio
@@ -120,8 +113,8 @@ function updateLevelDisplay(){
 
 // ⏱ タイマー
 function startTimer(){
-  gameTime = 40;
-  document.getElementById("timer").textContent = "⏱ 40秒";
+  gameTime = 60;
+  document.getElementById("timer").textContent = "⏱ 60秒";
 
   timerInterval = setInterval(() => {
     gameTime--;
@@ -148,6 +141,8 @@ function endGame(){
 
 // ▶ スタート
 function startGame(){
+  if(gameActive) return; // ← プレイ中は無効
+
   audioCtx.resume();
   clearInterval(timerInterval);
 
@@ -186,6 +181,7 @@ function showTarget(){
     playSound(150,0.3);
     document.getElementById("result").textContent="❌ 遅い！";
     document.getElementById("combo").textContent="";
+    setTimeout(showTarget, setting.coolNg);
   }, setting.time);
 }
 
@@ -201,7 +197,7 @@ function judge(select){
     combo++;
     playSound(600,0.15);
     document.getElementById("result").textContent="⭕ 正解！";
-    document.getElementById("combo").textContent=
+    document.getElementById("combo").textContent =
       combo+" 連続正解";
 
     if(combo>=5){
@@ -214,7 +210,6 @@ function judge(select){
         updateLevelDisplay();
       }
     }
-
     setTimeout(showTarget, setting.coolOk);
 
   }else{
