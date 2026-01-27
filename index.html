@@ -8,24 +8,27 @@
   body {
     font-family: sans-serif;
     text-align: center;
-    background: #f0f8ff;
+    background: #eef7ff;
   }
-  h1 {
-    font-size: 28px;
-  }
+  h1 { font-size: 28px; }
   button {
     font-size: 22px;
-    padding: 15px 25px;
-    margin: 10px;
+    padding: 14px 24px;
+    margin: 8px;
   }
   #target {
-    font-size: 60px;
+    font-size: 70px;
     margin: 30px;
     display: none;
   }
   #result {
     font-size: 24px;
-    margin-top: 20px;
+    margin-top: 15px;
+  }
+  #combo {
+    font-size: 26px;
+    color: red;
+    margin-top: 10px;
   }
 </style>
 </head>
@@ -45,10 +48,29 @@
 
 <div id="target">●</div>
 <div id="result"></div>
+<div id="combo"></div>
 
 <script>
 let displayTime = 800;
 let startTime = 0;
+let combo = 0;
+let visible = false;
+
+// 効果音（iPhone対応）
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, duration) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001, audioCtx.currentTime + duration
+  );
+  osc.stop(audioCtx.currentTime + duration);
+}
 
 function setLevel(time) {
   displayTime = time;
@@ -58,26 +80,48 @@ function setLevel(time) {
 
 function startGame() {
   document.getElementById("result").textContent = "";
+  visible = false;
   const target = document.getElementById("target");
   target.style.display = "none";
 
   setTimeout(() => {
     target.style.display = "block";
+    visible = true;
     startTime = Date.now();
 
     setTimeout(() => {
       target.style.display = "none";
+      visible = false;
+      startTime = 0;
+      combo = 0;
+      document.getElementById("combo").textContent = "";
+      playSound(150, 0.3); // ミス音
+      document.getElementById("result").textContent = "❌ 遅い！";
     }, displayTime);
   }, Math.random() * 1000 + 500);
 }
 
 document.body.addEventListener("click", () => {
-  if (startTime === 0) return;
+  if (!visible) return;
 
   const reaction = Date.now() - startTime;
-  document.getElementById("result").textContent =
-    "反応時間：" + reaction + " ms";
+  visible = false;
   startTime = 0;
+  combo++;
+
+  playSound(600, 0.15); // 正解音
+
+  document.getElementById("result").textContent =
+    "⭕ " + reaction + " ms";
+
+  if (combo >= 3) {
+    playSound(900, 0.2); // コンボ音
+    document.getElementById("combo").textContent =
+      "🔥 " + combo + " コンボ！";
+  } else {
+    document.getElementById("combo").textContent =
+      combo + " コンボ";
+  }
 });
 </script>
 
