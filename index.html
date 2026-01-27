@@ -91,11 +91,12 @@ let currentAnswer = '';
 let timer;
 let player = '';
 let accepting = false;
+let answered = false;
 
 const arrows = ['left','up','right'];
 const arrowIcons = { left:'←', up:'↑', right:'→' };
 
-// ★ レベル別設定
+// レベル別設定
 const showTimes = [1500,1300,1100,900,750,600,450];
 const coolTimes = [600,550,500,450,400,350,300];
 
@@ -117,21 +118,25 @@ function countDown() {
 
 function nextQuestion() {
   accepting = true;
+  answered = false;
   document.getElementById('feedback').textContent = '';
 
   currentAnswer = arrows[Math.floor(Math.random() * 3)];
   const arrowEl = document.getElementById('arrow');
   arrowEl.textContent = arrowIcons[currentAnswer];
 
-  // ★ 矢印を消す（レベル反映）
+  // 矢印表示終了 → 未回答ならミス扱い
   setTimeout(() => {
-    arrowEl.textContent = '';
-    accepting = false;
+    if (!answered) {
+      missByTimeout();
+    }
   }, showTimes[level - 1]);
 }
 
 function answer(choice) {
   if (!accepting) return;
+
+  answered = true;
   accepting = false;
 
   const fb = document.getElementById('feedback');
@@ -153,6 +158,21 @@ function answer(choice) {
   }
 
   updateDisplay();
+  document.getElementById('arrow').textContent = '';
+
+  setTimeout(nextQuestion, coolTimes[level - 1]);
+}
+
+function missByTimeout() {
+  accepting = false;
+  combo = 0;
+  updateDisplay();
+
+  document.getElementById('arrow').textContent = '';
+  const fb = document.getElementById('feedback');
+  fb.textContent = '❌';
+  fb.className = 'wrong';
+
   setTimeout(nextQuestion, coolTimes[level - 1]);
 }
 
@@ -185,12 +205,11 @@ function showRanking() {
 
   const list = document.getElementById('rankList');
   list.innerHTML = '';
-  JSON.parse(localStorage.getItem('scores')||'[]')
-    .forEach(d=>{
-      const li=document.createElement('li');
-      li.textContent=`${d.name} ${d.score}`;
-      list.appendChild(li);
-    });
+  JSON.parse(localStorage.getItem('scores')||'[]').forEach(d=>{
+    const li=document.createElement('li');
+    li.textContent=`${d.name} ${d.score}`;
+    list.appendChild(li);
+  });
 }
 </script>
 
