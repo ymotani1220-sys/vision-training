@@ -72,14 +72,15 @@ let answer = "";
 let visible = false;
 let combo = 0;
 
+// レベル設定
 const levelSettings = {
-  1:{time:1500,choices:["←","→"]},
-  2:{time:1200,choices:["←","→"]},
-  3:{time:900, choices:["←","→"]},
-  4:{time:700, choices:["←","→"]},
-  5:{time:550, choices:["←","↑","→"]},
-  6:{time:400, choices:["←","↑","→"]},
-  7:{time:280, choices:["←","↑","→"]}
+  1:{time:1500,choices:["←","→"], coolOk:1500, coolNg:2000},
+  2:{time:1200,choices:["←","→"], coolOk:1300, coolNg:1800},
+  3:{time:900, choices:["←","→"], coolOk:1100, coolNg:1600},
+  4:{time:700, choices:["←","→"], coolOk:900,  coolNg:1400},
+  5:{time:550, choices:["←","↑","→"], coolOk:700,  coolNg:1200},
+  6:{time:400, choices:["←","↑","→"], coolOk:500,  coolNg:1000},
+  7:{time:280, choices:["←","↑","→"], coolOk:350,  coolNg:800}
 };
 
 // 🔊 Audio
@@ -95,7 +96,7 @@ function playSound(freq, dur){
   o.stop(audioCtx.currentTime + dur);
 }
 
-// 🎨 背景変更
+// 🎨 背景
 function updateBackground(){
   document.body.style.backgroundImage =
     `url('images/bg_lv${level}.png')`;
@@ -141,6 +142,8 @@ function judge(select){
   visible = false;
   document.getElementById("target").style.display="none";
 
+  const setting = levelSettings[level];
+
   if(select===answer){
     combo++;
     playSound(600,0.15);
@@ -160,12 +163,16 @@ function judge(select){
         document.getElementById("levelup").textContent="🏆 MAXレベル！";
       }
     }
-    setTimeout(showTarget,500);
+
+    setTimeout(showTarget, setting.coolOk);
+
   }else{
     combo=0;
     playSound(200,0.3);
     document.getElementById("result").textContent="❌ ミス";
     document.getElementById("combo").textContent="";
+
+    setTimeout(showTarget, setting.coolNg);
   }
 }
 
