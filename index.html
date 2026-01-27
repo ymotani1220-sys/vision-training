@@ -14,9 +14,7 @@ body {
   margin: 0;
 }
 
-#game {
-  padding: 20px;
-}
+#game { padding: 20px; }
 
 .arrow {
   font-size: 100px;
@@ -28,13 +26,8 @@ body {
   height: 50px;
 }
 
-.correct {
-  color: #00ff99;
-}
-
-.wrong {
-  color: #ff5555;
-}
+.correct { color: #00ff99; }
+.wrong { color: #ff5555; }
 
 button {
   font-size: 22px;
@@ -42,9 +35,7 @@ button {
   margin: 10px;
 }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 #ranking {
   text-align: left;
@@ -64,15 +55,13 @@ button {
 </div>
 
 <div id="game" class="hidden">
-  <div>
-    👤 <span id="nameDisplay"></span><br>
-    ⏱ 残り <span id="time">60</span> 秒<br>
-    🎯 レベル <span id="level">1</span><br>
-    🔥 連続 <span id="combo">0</span><br>
-    ⭐ スコア <span id="score">1.0</span>
-  </div>
+  👤 <span id="nameDisplay"></span><br>
+  ⏱ 残り <span id="time">60</span> 秒<br>
+  🎯 レベル <span id="level">1</span><br>
+  🔥 連続 <span id="combo">0</span><br>
+  ⭐ スコア <span id="score">1.0</span>
 
-  <div id="arrow" class="arrow">←</div>
+  <div id="arrow" class="arrow"></div>
   <div id="feedback"></div>
 
   <button onclick="answer('left')">←</button>
@@ -101,16 +90,18 @@ let time = 60;
 let currentAnswer = '';
 let timer;
 let player = '';
-let waiting = false;
+let accepting = false;
 
-const arrows = ['left', 'up', 'right'];
-const arrowIcons = { left: '←', up: '↑', right: '→' };
-const coolTimes = [1200,1100,1000,900,800,700,600];
+const arrows = ['left','up','right'];
+const arrowIcons = { left:'←', up:'↑', right:'→' };
+
+// ★ レベル別設定
+const showTimes = [1500,1300,1100,900,750,600,450];
+const coolTimes = [600,550,500,450,400,350,300];
 
 function startGame() {
   player = document.getElementById('playerName').value || 'ゲスト';
   document.getElementById('nameDisplay').textContent = player;
-
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
 
@@ -125,21 +116,29 @@ function countDown() {
 }
 
 function nextQuestion() {
-  waiting = false;
+  accepting = true;
   document.getElementById('feedback').textContent = '';
+
   currentAnswer = arrows[Math.floor(Math.random() * 3)];
-  document.getElementById('arrow').textContent = arrowIcons[currentAnswer];
+  const arrowEl = document.getElementById('arrow');
+  arrowEl.textContent = arrowIcons[currentAnswer];
+
+  // ★ 矢印を消す（レベル反映）
+  setTimeout(() => {
+    arrowEl.textContent = '';
+    accepting = false;
+  }, showTimes[level - 1]);
 }
 
 function answer(choice) {
-  if (waiting) return;
-  waiting = true;
+  if (!accepting) return;
+  accepting = false;
 
-  const feedback = document.getElementById('feedback');
+  const fb = document.getElementById('feedback');
 
   if (choice === currentAnswer) {
-    feedback.textContent = '✅';
-    feedback.className = 'correct';
+    fb.textContent = '✅';
+    fb.className = 'correct';
     combo++;
     if (combo > maxCombo) maxCombo = combo;
 
@@ -148,13 +147,12 @@ function answer(choice) {
       combo = 0;
     }
   } else {
-    feedback.textContent = '❌';
-    feedback.className = 'wrong';
+    fb.textContent = '❌';
+    fb.className = 'wrong';
     combo = 0;
   }
 
   updateDisplay();
-
   setTimeout(nextQuestion, coolTimes[level - 1]);
 }
 
@@ -171,18 +169,14 @@ function endGame() {
 
   const final = `${level}.${maxCombo}`;
   document.getElementById('finalScore').textContent = `スコア：${final}`;
-
   saveScore(final);
 }
 
 function saveScore(score) {
   let data = JSON.parse(localStorage.getItem('scores') || '[]');
-  data.push({ name: player, score: score, time: Date.now() });
-
-  data.sort((a,b) => parseFloat(b.score) - parseFloat(a.score));
-  data = data.slice(0,100);
-
-  localStorage.setItem('scores', JSON.stringify(data));
+  data.push({ name: player, score, time: Date.now() });
+  data.sort((a,b)=>parseFloat(b.score)-parseFloat(a.score));
+  localStorage.setItem('scores', JSON.stringify(data.slice(0,100)));
 }
 
 function showRanking() {
@@ -191,13 +185,12 @@ function showRanking() {
 
   const list = document.getElementById('rankList');
   list.innerHTML = '';
-
-  const data = JSON.parse(localStorage.getItem('scores') || '[]');
-  data.forEach(d => {
-    const li = document.createElement('li');
-    li.textContent = `${d.name}　${d.score}`;
-    list.appendChild(li);
-  });
+  JSON.parse(localStorage.getItem('scores')||'[]')
+    .forEach(d=>{
+      const li=document.createElement('li');
+      li.textContent=`${d.name} ${d.score}`;
+      list.appendChild(li);
+    });
 }
 </script>
 
