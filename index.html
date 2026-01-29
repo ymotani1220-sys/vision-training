@@ -55,6 +55,9 @@ button { font-size:22px; padding:15px 25px; margin:10px; }
   <button onclick="location.reload()">もう一度</button>
 </div>
 
+<!-- 🎵 レベル7専用BGM -->
+<audio id="level7bgm" src="level7.mp3" loop preload="auto"></audio>
+
 <script>
 /* ===== 変数 ===== */
 let level = 1;
@@ -67,10 +70,13 @@ let player = '';
 let answered = false;
 let current = '';
 let level7TotalCombo = 0;
+let bgmStarted = false;
 
 const arrows = ['left','up','right'];
 const icons = {left:'←', up:'↑', right:'→'};
 const showTimes = [1500,1300,1100,900,750,600,450];
+
+const level7bgm = document.getElementById('level7bgm');
 
 /* ===== 開始 ===== */
 function startGame(){
@@ -129,6 +135,13 @@ function judge(correct){
 
     if(level === 7){
       level7TotalCombo++;
+
+      // 🎵 レベル7突入時にBGM開始（1回だけ）
+      if(!bgmStarted){
+        level7bgm.volume = 0.6;
+        level7bgm.play().catch(()=>{});
+        bgmStarted = true;
+      }
     }
 
   } else {
@@ -162,6 +175,9 @@ function endGame(){
   clearInterval(timer);
   clearTimeout(questionTimer);
 
+  level7bgm.pause();
+  level7bgm.currentTime = 0;
+
   saveScore();
   showRanking();
 
@@ -173,8 +189,7 @@ function endGame(){
 
 /* ===== ランキング ===== */
 function saveScore(){
-  const scoreText = document.getElementById('score').textContent;
-  const score = Number(scoreText);
+  const score = Number(document.getElementById('score').textContent);
   const r = {name:player, score};
 
   const list = JSON.parse(localStorage.getItem('ranking')||'[]');
