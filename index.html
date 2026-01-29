@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>瞬間判断 卓球トレーニング</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      text-align: center;
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
-    }
-    #arrow {
-      font-size: 120px;
-      margin: 30px 0;
-    }
-    button {
-      font-size: 20px;
-      padding: 12px 24px;
-      margin: 10px;
-    }
-    #status {
-      font-size: 18px;
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>瞬間判断 卓球トレーニング</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    text-align: center;
+    font-family: sans-serif;
+    background: #111;
+    color: #fff;
+  }
+  #arrow {
+    font-size: 120px;
+    margin: 30px 0;
+  }
+  button {
+    font-size: 20px;
+    padding: 12px 24px;
+    margin: 10px;
+  }
+  #status {
+    font-size: 18px;
+    margin-top: 10px;
+  }
+</style>
 </head>
 <body>
 
 <h1>🏓 瞬間判断トレーニング</h1>
 
-<div id="arrow">▶</div>
+<div id="arrow">→</div>
 
 <div>
-  <button id="leftBtn">←</button>
-  <button id="rightBtn">→</button>
+  <button onclick="answer('←')">←</button>
+  <button onclick="answer('→')">→</button>
 </div>
 
 <button id="startBtn">スタート</button>
@@ -47,20 +47,7 @@
 
 <script>
 /* =====================
-   🔊 BGM 定義（1回だけ）
-===================== */
-const bgmNormal = new Audio("bgm/normal.mp3");
-const bgmLevel7 = new Audio("bgm/level7.mp3");
-
-bgmNormal.loop = true;
-bgmLevel7.loop = true;
-bgmNormal.volume = 0.5;
-bgmLevel7.volume = 0.6;
-
-let audioUnlocked = false;
-
-/* =====================
-   ゲーム状態
+   ゲーム状態（安定版）
 ===================== */
 let currentArrow = "→";
 let level = 1;
@@ -69,27 +56,33 @@ let score = 1.0;
 let gameRunning = false;
 
 /* =====================
+   🔊 レベル7専用BGM（後付け）
+===================== */
+const level7BGM = new Audio("bgm/level7.mp3");
+level7BGM.loop = true;
+level7BGM.volume = 0.6;
+
+let audioUnlocked = false;
+let bgmPlaying = false;
+
+/* =====================
    表示更新
 ===================== */
 function updateUI() {
   document.getElementById("level").textContent = level;
   document.getElementById("combo").textContent = combo;
   document.getElementById("score").textContent = score.toFixed(1);
+  checkLevel7BGM();
 }
 
 /* =====================
-   BGM切り替え
+   BGM監視（ゲームには触らない）
 ===================== */
-function updateBGM() {
-  bgmNormal.pause();
-  bgmLevel7.pause();
-
-  if (level === 7) {
-    bgmLevel7.currentTime = 0;
-    bgmLevel7.play();
-  } else {
-    bgmNormal.currentTime = 0;
-    bgmNormal.play();
+function checkLevel7BGM() {
+  if (level === 7 && !bgmPlaying && audioUnlocked) {
+    level7BGM.currentTime = 0;
+    level7BGM.play();
+    bgmPlaying = true;
   }
 }
 
@@ -102,7 +95,7 @@ function nextQuestion() {
 }
 
 /* =====================
-   回答処理
+   回答処理（安定版ロジック）
 ===================== */
 function answer(dir) {
   if (!gameRunning) return;
@@ -113,7 +106,6 @@ function answer(dir) {
     if (level < 7 && combo >= 5) {
       level++;
       combo = 0;
-      updateBGM();
     }
 
     if (level === 7 && combo % 5 === 0) {
@@ -126,18 +118,18 @@ function answer(dir) {
   }
 
   updateUI();
-
   setTimeout(nextQuestion, 400);
 }
 
 /* =====================
-   スタート処理（音アンロック）
+   スタート（音アンロック）
 ===================== */
 document.getElementById("startBtn").addEventListener("click", () => {
+
   if (!audioUnlocked) {
-    bgmNormal.play().then(() => {
-      bgmNormal.pause();
-      bgmNormal.currentTime = 0;
+    level7BGM.play().then(() => {
+      level7BGM.pause();
+      level7BGM.currentTime = 0;
       audioUnlocked = true;
     });
   }
@@ -146,18 +138,13 @@ document.getElementById("startBtn").addEventListener("click", () => {
   combo = 0;
   score = 1.0;
   gameRunning = true;
+  bgmPlaying = false;
+  level7BGM.pause();
+  level7BGM.currentTime = 0;
 
   updateUI();
-  updateBGM();
   nextQuestion();
 });
-
-/* =====================
-   ボタン
-===================== */
-document.getElementById("leftBtn").onclick = () => answer("←");
-document.getElementById("rightBtn").onclick = () => answer("→");
-
 </script>
 
 </body>
