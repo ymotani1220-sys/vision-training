@@ -1,213 +1,163 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球 瞬間判断トレーニング</title>
-
-<style>
-body {
-  font-family: sans-serif;
-  text-align: center;
-  background: #111;
-  color: #fff;
-  margin: 0;
-}
-.arrow { font-size: 100px; margin: 30px 0; }
-#feedback { font-size: 40px; height: 50px; }
-.correct { color:#0f9; }
-.wrong { color:#f55; }
-button { font-size:22px; padding:15px 25px; margin:10px; }
-.hidden { display:none; }
-#ranking { text-align:left; max-width:320px; margin:auto; }
-</style>
+  <meta charset="UTF-8">
+  <title>瞬間判断 卓球トレーニング</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+    }
+    #arrow {
+      font-size: 120px;
+      margin: 30px 0;
+    }
+    button {
+      font-size: 20px;
+      padding: 12px 24px;
+      margin: 10px;
+    }
+    #status {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
-
 <body>
 
-<div id="start">
-  <h1>🏓 瞬間判断トレーニング</h1>
-  <input id="playerName" placeholder="名前">
-  <br><br>
-  <button onclick="startGame()">スタート</button>
+<h1>🏓 瞬間判断トレーニング</h1>
+
+<div id="arrow">▶</div>
+
+<div>
+  <button id="leftBtn">←</button>
+  <button id="rightBtn">→</button>
 </div>
 
-<div id="game" class="hidden">
-  👤 <span id="name"></span><br>
-  ⏱ <span id="time">60</span> 秒　
-  🎯 Lv <span id="level">1</span>　
-  🔥 <span id="combo">0</span><br>
-  ⭐ <span id="score">1.0</span>
+<button id="startBtn">スタート</button>
 
-  <div id="arrow" class="arrow"></div>
-  <div id="feedback"></div>
-
-  <button onclick="answer('left')">←</button>
-  <button onclick="answer('up')">↑</button>
-  <button onclick="answer('right')">→</button>
+<div id="status">
+  レベル: <span id="level">1</span> /
+  連続: <span id="combo">0</span> /
+  スコア: <span id="score">1.0</span>
 </div>
-
-<div id="result" class="hidden">
-  <h2>🎉 結果</h2>
-  <p id="finalScore"></p>
-  <h3>🏆 ランキング</h3>
-  <ol id="ranking"></ol>
-  <button onclick="location.reload()">もう一度</button>
-</div>
-
-<!-- 🎵 レベル7専用BGM -->
-<audio id="level7bgm" src="level7.mp3" loop preload="auto"></audio>
 
 <script>
-/* ===== 変数 ===== */
+/* =====================
+   🔊 BGM 定義（1回だけ）
+===================== */
+const bgmNormal = new Audio("bgm/normal.mp3");
+const bgmLevel7 = new Audio("bgm/level7.mp3");
+
+bgmNormal.loop = true;
+bgmLevel7.loop = true;
+bgmNormal.volume = 0.5;
+bgmLevel7.volume = 0.6;
+
+let audioUnlocked = false;
+
+/* =====================
+   ゲーム状態
+===================== */
+let currentArrow = "→";
 let level = 1;
 let combo = 0;
-let maxCombo = 0;
-let time = 60;
-let timer = null;
-let questionTimer = null;
-let player = '';
-let answered = false;
-let current = '';
-let level7TotalCombo = 0;
-let bgmStarted = false;
+let score = 1.0;
+let gameRunning = false;
 
-const arrows = ['left','up','right'];
-const icons = {left:'←', up:'↑', right:'→'};
-const showTimes = [1500,1300,1100,900,750,600,450];
-
-const level7bgm = document.getElementById('level7bgm');
-
-/* ===== 開始 ===== */
-function startGame(){
-  player = document.getElementById('playerName').value || 'ゲスト';
-  document.getElementById('name').textContent = player;
-
-  document.getElementById('start').classList.add('hidden');
-  document.getElementById('game').classList.remove('hidden');
-
-  timer = setInterval(()=>{
-    time--;
-    document.getElementById('time').textContent = time;
-    if(time<=0) endGame();
-  },1000);
-
-  nextQuestion();
+/* =====================
+   表示更新
+===================== */
+function updateUI() {
+  document.getElementById("level").textContent = level;
+  document.getElementById("combo").textContent = combo;
+  document.getElementById("score").textContent = score.toFixed(1);
 }
 
-/* ===== 次の問題 ===== */
-function nextQuestion(){
-  clearTimeout(questionTimer);
-  answered = false;
-  document.getElementById('feedback').textContent = '';
+/* =====================
+   BGM切り替え
+===================== */
+function updateBGM() {
+  bgmNormal.pause();
+  bgmLevel7.pause();
 
-  current = arrows[Math.floor(Math.random()*3)];
-  document.getElementById('arrow').textContent = icons[current];
-
-  questionTimer = setTimeout(()=>{
-    if(!answered) judge(false);
-  }, showTimes[level-1]);
+  if (level === 7) {
+    bgmLevel7.currentTime = 0;
+    bgmLevel7.play();
+  } else {
+    bgmNormal.currentTime = 0;
+    bgmNormal.play();
+  }
 }
 
-/* ===== 回答 ===== */
-function answer(choice){
-  if(answered) return;
-  judge(choice === current);
+/* =====================
+   問題出題
+===================== */
+function nextQuestion() {
+  currentArrow = Math.random() < 0.5 ? "←" : "→";
+  document.getElementById("arrow").textContent = currentArrow;
 }
 
-/* ===== 判定 ===== */
-function judge(correct){
-  answered = true;
-  clearTimeout(questionTimer);
-  document.getElementById('arrow').textContent = '';
+/* =====================
+   回答処理
+===================== */
+function answer(dir) {
+  if (!gameRunning) return;
 
-  const fb = document.getElementById('feedback');
-
-  if(correct){
-    fb.textContent = '✅';
+  if (dir === currentArrow) {
     combo++;
-    maxCombo = Math.max(maxCombo, combo);
 
-    if(level < 7 && combo >= 5){
+    if (level < 7 && combo >= 5) {
       level++;
       combo = 0;
+      updateBGM();
     }
 
-    if(level === 7){
-      level7TotalCombo++;
-
-      // 🎵 レベル7突入時にBGM開始（1回だけ）
-      if(!bgmStarted){
-        level7bgm.volume = 0.6;
-        level7bgm.play().catch(()=>{});
-        bgmStarted = true;
-      }
+    if (level === 7 && combo % 5 === 0) {
+      score += 1;
+    } else {
+      score = level + combo / 10;
     }
-
   } else {
-    fb.textContent = '❌';
     combo = 0;
   }
 
   updateUI();
+
   setTimeout(nextQuestion, 400);
 }
 
-/* ===== 表示更新 ===== */
-function updateUI(){
-  document.getElementById('level').textContent = level;
-  document.getElementById('combo').textContent = combo;
-
-  let scoreBase = level;
-  let scoreDecimal = maxCombo;
-
-  if(level === 7){
-    scoreBase = 7 + Math.floor(level7TotalCombo / 5);
-    scoreDecimal = level7TotalCombo % 5 + 1;
+/* =====================
+   スタート処理（音アンロック）
+===================== */
+document.getElementById("startBtn").addEventListener("click", () => {
+  if (!audioUnlocked) {
+    bgmNormal.play().then(() => {
+      bgmNormal.pause();
+      bgmNormal.currentTime = 0;
+      audioUnlocked = true;
+    });
   }
 
-  document.getElementById('score').textContent =
-    `${scoreBase}.${scoreDecimal}`;
-}
+  level = 1;
+  combo = 0;
+  score = 1.0;
+  gameRunning = true;
 
-/* ===== 終了 ===== */
-function endGame(){
-  clearInterval(timer);
-  clearTimeout(questionTimer);
+  updateUI();
+  updateBGM();
+  nextQuestion();
+});
 
-  level7bgm.pause();
-  level7bgm.currentTime = 0;
+/* =====================
+   ボタン
+===================== */
+document.getElementById("leftBtn").onclick = () => answer("←");
+document.getElementById("rightBtn").onclick = () => answer("→");
 
-  saveScore();
-  showRanking();
-
-  document.getElementById('game').classList.add('hidden');
-  document.getElementById('result').classList.remove('hidden');
-  document.getElementById('finalScore').textContent =
-    `スコア：${document.getElementById('score').textContent}`;
-}
-
-/* ===== ランキング ===== */
-function saveScore(){
-  const score = Number(document.getElementById('score').textContent);
-  const r = {name:player, score};
-
-  const list = JSON.parse(localStorage.getItem('ranking')||'[]');
-  list.push(r);
-  list.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('ranking', JSON.stringify(list.slice(0,100)));
-}
-
-function showRanking(){
-  const list = JSON.parse(localStorage.getItem('ranking')||'[]');
-  const ol = document.getElementById('ranking');
-  ol.innerHTML = '';
-  list.forEach((r,i)=>{
-    const li = document.createElement('li');
-    li.textContent = `${i+1}. ${r.name}（${r.score}）`;
-    ol.appendChild(li);
-  });
-}
 </script>
 
 </body>
