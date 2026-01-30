@@ -31,6 +31,7 @@ button { font-size:22px; padding:15px 25px; margin:10px; }
   font-size: 64px;
   font-weight: bold;
   z-index: 999;
+  pointer-events: none;
   animation: flash 0.8s ease-out forwards;
 }
 
@@ -44,7 +45,6 @@ button { font-size:22px; padding:15px 25px; margin:10px; }
 
 <body>
 
-<!-- 🔥 覚醒表示 -->
 <div id="awakening" class="hidden">🔥 覚醒！</div>
 
 <div id="start">
@@ -90,6 +90,9 @@ let answered = false;
 let current = '';
 let level7TotalCombo = 0;
 
+/* 🔥 覚醒管理 */
+let awakened = false;
+
 /* 🔊 BGM */
 const level7BGM = new Audio("bgm/level7.mp3");
 level7BGM.loop = true;
@@ -97,15 +100,24 @@ level7BGM.volume = 0.6;
 let audioUnlocked = false;
 let level7BgmPlaying = false;
 
-/* 🔥 覚醒フラグ */
-let awakened = false;
-
 const arrows = ['left','up','right'];
 const icons = {left:'←', up:'↑', right:'→'};
 const showTimes = [1500,1300,1100,900,750,600,450];
 
 /* ===== 開始 ===== */
 function startGame(){
+  // 🔄 ゲーム初期化
+  level = 1;
+  combo = 0;
+  maxCombo = 0;
+  time = 60;
+  level7TotalCombo = 0;
+  awakened = false;
+  level7BgmPlaying = false;
+
+  // 🔥 覚醒画面を確実に消す
+  document.getElementById('awakening').classList.add('hidden');
+
   player = document.getElementById('playerName').value || 'ゲスト';
   document.getElementById('name').textContent = player;
 
@@ -119,6 +131,8 @@ function startGame(){
       audioUnlocked = true;
     });
   }
+
+  document.getElementById('time').textContent = time;
 
   timer = setInterval(()=>{
     time--;
@@ -163,7 +177,6 @@ function judge(correct){
       level++;
       combo = 0;
 
-      /* 🔥 覚醒演出（6→7） */
       if(level === 7 && !awakened){
         awakened = true;
         const a = document.getElementById('awakening');
@@ -214,6 +227,8 @@ function endGame(){
 
   level7BGM.pause();
   level7BGM.currentTime = 0;
+
+  document.getElementById('awakening').classList.add('hidden');
 
   saveScore();
   showRanking();
