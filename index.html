@@ -12,18 +12,40 @@ body {
   background: #111;
   color: #fff;
   margin: 0;
+  overflow: hidden;
 }
 .arrow { font-size: 100px; margin: 30px 0; }
 #feedback { font-size: 40px; height: 50px; }
-.correct { color:#0f9; }
-.wrong { color:#f55; }
 button { font-size:22px; padding:15px 25px; margin:10px; }
 .hidden { display:none; }
 #ranking { text-align:left; max-width:320px; margin:auto; }
+
+/* 🔥 覚醒演出 */
+#awakening {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: bold;
+  z-index: 999;
+  animation: flash 0.8s ease-out forwards;
+}
+
+@keyframes flash {
+  0% { opacity: 0; transform: scale(0.8); }
+  20% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
 </style>
 </head>
 
 <body>
+
+<!-- 🔥 覚醒表示 -->
+<div id="awakening" class="hidden">🔥 覚醒！</div>
 
 <div id="start">
   <h1>🏓 瞬間判断トレーニング</h1>
@@ -68,6 +90,16 @@ let answered = false;
 let current = '';
 let level7TotalCombo = 0;
 
+/* 🔊 BGM */
+const level7BGM = new Audio("bgm/level7.mp3");
+level7BGM.loop = true;
+level7BGM.volume = 0.6;
+let audioUnlocked = false;
+let level7BgmPlaying = false;
+
+/* 🔥 覚醒フラグ */
+let awakened = false;
+
 const arrows = ['left','up','right'];
 const icons = {left:'←', up:'↑', right:'→'};
 const showTimes = [1500,1300,1100,900,750,600,450];
@@ -79,6 +111,14 @@ function startGame(){
 
   document.getElementById('start').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
+
+  if(!audioUnlocked){
+    level7BGM.play().then(()=>{
+      level7BGM.pause();
+      level7BGM.currentTime = 0;
+      audioUnlocked = true;
+    });
+  }
 
   timer = setInterval(()=>{
     time--;
@@ -115,16 +155,21 @@ function judge(correct){
   clearTimeout(questionTimer);
   document.getElementById('arrow').textContent = '';
 
-  const fb = document.getElementById('feedback');
-
   if(correct){
-    fb.textContent = '✅';
     combo++;
     maxCombo = Math.max(maxCombo, combo);
 
     if(level < 7 && combo >= 5){
       level++;
       combo = 0;
+
+      /* 🔥 覚醒演出（6→7） */
+      if(level === 7 && !awakened){
+        awakened = true;
+        const a = document.getElementById('awakening');
+        a.classList.remove('hidden');
+        setTimeout(()=>a.classList.add('hidden'), 800);
+      }
     }
 
     if(level === 7){
@@ -132,7 +177,6 @@ function judge(correct){
     }
 
   } else {
-    fb.textContent = '❌';
     combo = 0;
   }
 
@@ -155,12 +199,21 @@ function updateUI(){
 
   document.getElementById('score').textContent =
     `${scoreBase}.${scoreDecimal}`;
+
+  if(level === 7 && audioUnlocked && !level7BgmPlaying){
+    level7BGM.currentTime = 0;
+    level7BGM.play();
+    level7BgmPlaying = true;
+  }
 }
 
 /* ===== 終了 ===== */
 function endGame(){
   clearInterval(timer);
   clearTimeout(questionTimer);
+
+  level7BGM.pause();
+  level7BGM.currentTime = 0;
 
   saveScore();
   showRanking();
@@ -173,10 +226,8 @@ function endGame(){
 
 /* ===== ランキング ===== */
 function saveScore(){
-  const scoreText = document.getElementById('score').textContent;
-  const score = Number(scoreText);
+  const score = Number(document.getElementById('score').textContent);
   const r = {name:player, score};
-
   const list = JSON.parse(localStorage.getItem('ranking')||'[]');
   list.push(r);
   list.sort((a,b)=>b.score-a.score);
@@ -197,4 +248,3 @@ function showRanking(){
 
 </body>
 </html>
-
