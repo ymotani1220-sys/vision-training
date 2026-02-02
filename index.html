@@ -15,6 +15,7 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
+  transition:background 0.4s;
 }
 
 /* 画面共通 */
@@ -30,7 +31,7 @@ body{
 
 .hidden{ display:none; }
 
-/* ===== スタート画面 ===== */
+/* スタート */
 #start h1{
   margin-bottom:20px;
   font-size:22px;
@@ -41,14 +42,14 @@ body{
   padding:15px 30px;
 }
 
-/* ===== ゲーム画面 ===== */
+/* ゲーム */
 #game{
   position:relative;
   width:320px;
   height:320px;
 }
 
-/* 上部情報（得点） */
+/* 情報 */
 #info{
   position:absolute;
   top:-90px;
@@ -57,19 +58,16 @@ body{
   font-size:18px;
 }
 
-/* ===== 判定（得点とラケットの間） ===== */
+/* 判定 */
 #result{
   position:absolute;
-  top:-35px;              /* info とラケットの中間 */
+  top:-35px;
   left:50%;
   transform:translateX(-50%);
   font-size:34px;
   font-weight:bold;
   height:40px;
-  text-shadow:
-    0 0 3px #000,
-    0 0 6px #000;
-  pointer-events:none;
+  text-shadow:0 0 6px #000;
 }
 
 /* 中央ボール */
@@ -92,9 +90,7 @@ body{
   font-size:46px;
   font-weight:900;
   color:#f33;
-  text-shadow:
-    0 0 4px #000,
-    0 0 8px #000;
+  text-shadow:0 0 8px #000;
 }
 
 /* ラケット */
@@ -106,7 +102,6 @@ body{
   background:#c00;
   border:none;
 }
-
 .spin-btn::after{
   content:'';
   position:absolute;
@@ -118,32 +113,26 @@ body{
   transform:translateX(-50%);
   border-radius:0 0 6px 6px;
 }
-
-.spin-btn.active{
-  background:#0f9;
-}
+.spin-btn.active{ background:#0f9; }
 </style>
 </head>
 
 <body>
 
-<!-- スタート -->
 <div id="start" class="screen">
   <h1>🏓 卓球回転判断トレーニング</h1>
   <button onclick="startGame()">スタート</button>
 </div>
 
-<!-- ゲーム -->
 <div id="gameScreen" class="screen hidden">
   <div id="game">
 
     <div id="info">
-      Lv <span id="level">1</span>　
-      🔥 <span id="combo">0</span>　
+      Lv <span id="level">1</span>
+      🔥 <span id="combo">0</span>
       ⭐ <span id="score">1.0</span>
     </div>
 
-    <!-- 判定 -->
     <div id="result"></div>
 
     <div id="center">
@@ -154,88 +143,99 @@ body{
 </div>
 
 <script>
-const anglesDeg = [-90,-45,0,45,90,135,180,225];
-const anglesRad = anglesDeg.map(a=>a*Math.PI/180);
-const radius = 120;
-const centerPos = 160;
-const showTimes = [1200,1000,850,700,600,500,400];
+/* ===== 背景色（瞬間判断ゲーム準拠） ===== */
+const bgColors = [
+  '#111',
+  '#0b1a2a',
+  '#102a1c',
+  '#2a1c10',
+  '#2a1010',
+  '#1a102a',
+  '#2a002a'
+];
 
-const arrow = document.getElementById('arrow');
-const result = document.getElementById('result');
-const levelEl = document.getElementById('level');
-const comboEl = document.getElementById('combo');
-const scoreEl = document.getElementById('score');
+const anglesDeg=[-90,-45,0,45,90,135,180,225];
+const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
+const radius=120, center=160;
+const showTimes=[1200,1000,850,700,600,500,400];
 
-let rackets = [];
-let correctIndex = 0;
-let answered = false;
-let timer = null;
-let level = 1;
-let combo = 0;
+const arrow=document.getElementById('arrow');
+const result=document.getElementById('result');
+const levelEl=document.getElementById('level');
+const comboEl=document.getElementById('combo');
+const scoreEl=document.getElementById('score');
+
+let rackets=[],correct=0,answered=false,timer=null;
+let level=1,combo=0;
 
 function startGame(){
   document.getElementById('start').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
+  updateBackground();
   nextQuestion();
 }
 
 /* ラケット生成 */
-anglesRad.forEach((angle,i)=>{
-  const btn = document.createElement('button');
-  btn.className = 'spin-btn';
-  btn.style.left = (centerPos + radius*Math.cos(angle) - 25) + 'px';
-  btn.style.top  = (centerPos + radius*Math.sin(angle) - 25) + 'px';
-  btn.onclick = ()=>answer(i);
-  rackets.push(btn);
-  document.getElementById('game').appendChild(btn);
+anglesRad.forEach((a,i)=>{
+  const b=document.createElement('button');
+  b.className='spin-btn';
+  b.style.left=center+radius*Math.cos(a)-25+'px';
+  b.style.top =center+radius*Math.sin(a)-25+'px';
+  b.onclick=()=>answer(i);
+  rackets.push(b);
+  document.getElementById('game').appendChild(b);
 });
 
 function nextQuestion(){
   clearTimeout(timer);
-  answered = false;
-  result.textContent = '';
+  answered=false;
+  result.textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
 
-  correctIndex = Math.floor(Math.random()*8);
-  arrow.style.transform = `rotate(${anglesDeg[correctIndex]+90}deg)`;
-  rackets[correctIndex].classList.add('active');
+  correct=Math.floor(Math.random()*8);
+  arrow.style.transform=`rotate(${anglesDeg[correct]+90}deg)`;
+  rackets[correct].classList.add('active');
 
-  timer = setTimeout(()=>judge(false), showTimes[level-1]);
+  timer=setTimeout(()=>judge(false), showTimes[level-1]);
 }
 
 function answer(i){
   if(answered) return;
-  judge(i === correctIndex);
+  judge(i===correct);
 }
 
 function judge(ok){
-  answered = true;
+  answered=true;
   clearTimeout(timer);
   rackets.forEach(r=>r.classList.remove('active'));
 
   if(ok){
-    result.textContent = '〇';
-    result.style.color = '#0f9';
+    result.textContent='〇';
+    result.style.color='#0f9';
     combo++;
-    if(combo >= 5 && level < 7){
-      level++; combo = 0;
+    if(combo>=5 && level<7){
+      level++; combo=0;
+      updateBackground();
     }
   }else{
-    result.textContent = '✖';
-    result.style.color = '#f00';
-    combo = 0;
+    result.textContent='✖';
+    result.style.color='#f00';
+    combo=0;
   }
   updateUI();
   setTimeout(nextQuestion,600);
 }
 
 function updateUI(){
-  levelEl.textContent = level;
-  comboEl.textContent = combo;
-  scoreEl.textContent = `${level}.${combo}`;
+  levelEl.textContent=level;
+  comboEl.textContent=combo;
+  scoreEl.textContent=`${level}.${combo}`;
+}
+
+function updateBackground(){
+  document.body.style.background = bgColors[level-1];
 }
 </script>
 
 </body>
 </html>
-
