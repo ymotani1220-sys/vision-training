@@ -28,16 +28,17 @@ body {
   font-size:60px;
 }
 .racket {
-  position:absolute;
+   position:absolute;
   width:60px;
   height:60px;
-  background:#444;
-  border-radius:10px;
-  opacity:0.4;
+  background:#888;          /* ← 明るく */
+  border:3px solid #0f9;    /* ← 枠線追加 */
+  border-radius:12px;
+  opacity:1;                /* ← 透明やめる */
+  z-index:2;
 }
 .racket.active {
   background:#0f9;
-  opacity:1;
 }
 </style>
 </head>
@@ -164,3 +165,4 @@ function endGame(){
 
 </body>
 </html>
+
