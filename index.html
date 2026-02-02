@@ -32,7 +32,7 @@ body{
   font-size:18px;
 }
 
-/* 中央ボール */
+/* ===== 中央ボール ===== */
 #center{
   position:absolute;
   top:50%;
@@ -42,25 +42,36 @@ body{
   transform:translate(-50%,-50%);
   border-radius:50%;
   background:#fff;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
 }
 
-/* 矢印 */
+/* 矢印：完全中央 */
 #arrow{
-  font-size:40px;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:46px;
+  font-weight:900;
   color:#f33;
+  text-shadow:
+    0 0 4px #000,
+    0 0 8px #000;
 }
 
-/* 判定 */
+/* 判定：ボールとラケットの間 */
 #result{
-  height:30px;
-  font-size:28px;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, 55px);
+  font-size:32px;
+  font-weight:bold;
+  text-shadow:
+    0 0 3px #000,
+    0 0 6px #000;
 }
 
-/* ラケット */
+/* ===== ラケット ===== */
 .spin-btn{
   position:absolute;
   width:50px;
@@ -71,6 +82,7 @@ body{
   transition:0.2s;
 }
 
+/* ラケットの柄 */
 .spin-btn::after{
   content:'';
   position:absolute;
@@ -83,6 +95,7 @@ body{
   border-radius:0 0 6px 6px;
 }
 
+/* 光った状態 */
 .spin-btn.active{
   background:#0f9;
 }
@@ -101,8 +114,9 @@ body{
 
   <div id="center">
     <div id="arrow">↑</div>
-    <div id="result"></div>
   </div>
+
+  <div id="result"></div>
 
 </div>
 
@@ -128,7 +142,6 @@ let questionTimer = null;
 
 let level = 1;
 let combo = 0;
-let maxCombo = 0;
 
 /* ===== ラケット生成 ===== */
 anglesRad.forEach((angle,i)=>{
@@ -158,17 +171,15 @@ function nextQuestion(){
   correctIndex = Math.floor(Math.random()*8);
 
   arrow.style.transform =
-    `rotate(${anglesDeg[correctIndex]+90}deg)`;
+    `translate(-50%,-50%) rotate(${anglesDeg[correctIndex]+90}deg)`;
 
   rackets[correctIndex].classList.add('active');
-
-  const showTime = showTimes[level-1];
 
   questionTimer = setTimeout(()=>{
     if(!answered){
       judge(false);
     }
-  }, showTime);
+  }, showTimes[level-1]);
 }
 
 /* ===== 回答 ===== */
@@ -188,8 +199,6 @@ function judge(isCorrect){
     result.textContent = '〇';
     result.style.color = '#0f9';
     combo++;
-    maxCombo = Math.max(maxCombo, combo);
-
     if(combo >= 5 && level < 7){
       level++;
       combo = 0;
@@ -200,15 +209,11 @@ function judge(isCorrect){
     combo = 0;
   }
 
-  updateUI();
-  setTimeout(nextQuestion, 600);
-}
-
-/* ===== 表示更新 ===== */
-function updateUI(){
   levelEl.textContent = level;
   comboEl.textContent = combo;
   scoreEl.textContent = `${level}.${combo}`;
+
+  setTimeout(nextQuestion, 600);
 }
 
 /* ===== 開始 ===== */
