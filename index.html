@@ -15,6 +15,7 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
+  transition:background 0.4s;
 }
 
 #game{
@@ -44,7 +45,7 @@ body{
   background:#fff;
 }
 
-/* 矢印：完全中央 */
+/* 矢印（中心固定） */
 #arrow{
   position:absolute;
   top:50%;
@@ -58,7 +59,7 @@ body{
     0 0 8px #000;
 }
 
-/* 判定：ボールとラケットの間 */
+/* 判定（ボールとラケットの間） */
 #result{
   position:absolute;
   top:50%;
@@ -82,7 +83,6 @@ body{
   transition:0.2s;
 }
 
-/* ラケットの柄 */
 .spin-btn::after{
   content:'';
   position:absolute;
@@ -95,7 +95,6 @@ body{
   border-radius:0 0 6px 6px;
 }
 
-/* 光った状態 */
 .spin-btn.active{
   background:#0f9;
 }
@@ -128,6 +127,17 @@ const radius = 120;
 const centerPos = 160;
 
 const showTimes = [1200,1000,850,700,600,500,400];
+
+/* レベル別 背景色 */
+const levelColors = [
+  '#111',     // Lv1
+  '#0b2a3c',  // Lv2
+  '#123b1c',  // Lv3
+  '#4a3b0f',  // Lv4
+  '#4a1f0f',  // Lv5
+  '#4a0f2f',  // Lv6
+  '#000'      // Lv7
+];
 
 const arrow = document.getElementById('arrow');
 const result = document.getElementById('result');
@@ -209,14 +219,20 @@ function judge(isCorrect){
     combo = 0;
   }
 
-  levelEl.textContent = level;
-  comboEl.textContent = combo;
-  scoreEl.textContent = `${level}.${combo}`;
-
+  updateUI();
   setTimeout(nextQuestion, 600);
 }
 
+/* ===== 表示更新 ===== */
+function updateUI(){
+  levelEl.textContent = level;
+  comboEl.textContent = combo;
+  scoreEl.textContent = `${level}.${combo}`;
+  document.body.style.background = levelColors[level-1];
+}
+
 /* ===== 開始 ===== */
+updateUI();
 nextQuestion();
 </script>
 
