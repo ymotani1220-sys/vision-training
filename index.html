@@ -18,6 +18,17 @@ body{
   transition:background 0.4s;
 }
 
+/* ===== Lv7 脈動 ===== */
+@keyframes pulseBg {
+  0%   { background:#000; }
+  50%  { background:#111; }
+  100% { background:#000; }
+}
+
+body.pulse{
+  animation:pulseBg 2.2s infinite;
+}
+
 #game{
   position:relative;
   width:320px;
@@ -33,7 +44,7 @@ body{
   font-size:18px;
 }
 
-/* ===== 中央ボール ===== */
+/* 中央ボール */
 #center{
   position:absolute;
   top:50%;
@@ -45,7 +56,7 @@ body{
   background:#fff;
 }
 
-/* 矢印（中心固定） */
+/* 矢印 */
 #arrow{
   position:absolute;
   top:50%;
@@ -59,7 +70,7 @@ body{
     0 0 8px #000;
 }
 
-/* 判定（ボールとラケットの間） */
+/* 判定 */
 #result{
   position:absolute;
   top:50%;
@@ -72,7 +83,7 @@ body{
     0 0 6px #000;
 }
 
-/* ===== ラケット ===== */
+/* ラケット */
 .spin-btn{
   position:absolute;
   width:50px;
@@ -130,13 +141,13 @@ const showTimes = [1200,1000,850,700,600,500,400];
 
 /* レベル別 背景色 */
 const levelColors = [
-  '#111',     // Lv1
-  '#0b2a3c',  // Lv2
-  '#123b1c',  // Lv3
-  '#4a3b0f',  // Lv4
-  '#4a1f0f',  // Lv5
-  '#4a0f2f',  // Lv6
-  '#000'      // Lv7
+  '#111',
+  '#0b2a3c',
+  '#123b1c',
+  '#4a3b0f',
+  '#4a1f0f',
+  '#4a0f2f',
+  '#000'
 ];
 
 const arrow = document.getElementById('arrow');
@@ -228,7 +239,15 @@ function updateUI(){
   levelEl.textContent = level;
   comboEl.textContent = combo;
   scoreEl.textContent = `${level}.${combo}`;
+
   document.body.style.background = levelColors[level-1];
+
+  /* Lv7だけ脈動 */
+  if(level === 7){
+    document.body.classList.add('pulse');
+  }else{
+    document.body.classList.remove('pulse');
+  }
 }
 
 /* ===== 開始 ===== */
