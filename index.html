@@ -3,41 +3,87 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>瞬間判断トレーニング（回転判断）</title>
+<title>卓球 回転判断トレーニング</title>
 
 <style>
-body {
+body{
+  margin:0;
+  font-family:sans-serif;
   background:#111;
   color:#fff;
-  font-family:sans-serif;
-  text-align:center;
-  margin:0;
-}
-.hidden { display:none; }
-#timer { font-size:22px; margin:10px; }
-#center {
-  position:relative;
-  width:200px;
-  height:200px;
-  margin:30px auto;
-  border-radius:50%;
-  background:#222;
   display:flex;
-  align-items:center;
   justify-content:center;
-  font-size:60px;
+  align-items:center;
+  height:100vh;
 }
-.racket {
-   position:absolute;
-  width:60px;
-  height:60px;
-  background:#888;          /* ← 明るく */
-  border:3px solid #0f9;    /* ← 枠線追加 */
-  border-radius:12px;
-  opacity:1;                /* ← 透明やめる */
-  z-index:2;
+
+#game{
+  position:relative;
+  width:320px;
+  height:320px;
 }
-.racket.active {
+
+/* 上部情報 */
+#info{
+  position:absolute;
+  top:-90px;
+  width:100%;
+  text-align:center;
+  font-size:18px;
+}
+
+/* 中央ボール */
+#center{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:80px;
+  height:80px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+/* 矢印 */
+#arrow{
+  font-size:40px;
+  color:#f33;
+}
+
+/* 判定 */
+#result{
+  height:30px;
+  font-size:28px;
+}
+
+/* ラケット */
+.spin-btn{
+  position:absolute;
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  background:#c00;
+  border:none;
+  transition:0.2s;
+}
+
+.spin-btn::after{
+  content:'';
+  position:absolute;
+  bottom:-18px;
+  left:50%;
+  width:12px;
+  height:22px;
+  background:#caa;
+  transform:translateX(-50%);
+  border-radius:0 0 6px 6px;
+}
+
+.spin-btn.active{
   background:#0f9;
 }
 </style>
@@ -45,124 +91,129 @@ body {
 
 <body>
 
-<div id="start">
-  <h1>🏓 回転 瞬間判断トレーニング</h1>
-  <button onclick="startGame()">スタート</button>
-</div>
+<div id="game">
 
-<div id="game" class="hidden">
-  <div id="timer">⏱ 60</div>
+  <div id="info">
+    Lv <span id="level">1</span>　
+    🔥 <span id="combo">0</span>　
+    ⭐ <span id="score">1.0</span>
+  </div>
 
-  <div id="center">⬆</div>
+  <div id="center">
+    <div id="arrow">↑</div>
+    <div id="result"></div>
+  </div>
 
-  <!-- 8方向ラケット -->
-  <div class="racket" data-dir="0" style="top:-10px; left:70px;"></div>
-  <div class="racket" data-dir="1" style="top:10px; right:-10px;"></div>
-  <div class="racket" data-dir="2" style="top:70px; right:-10px;"></div>
-  <div class="racket" data-dir="3" style="bottom:10px; right:-10px;"></div>
-  <div class="racket" data-dir="4" style="bottom:-10px; left:70px;"></div>
-  <div class="racket" data-dir="5" style="bottom:10px; left:-10px;"></div>
-  <div class="racket" data-dir="6" style="top:70px; left:-10px;"></div>
-  <div class="racket" data-dir="7" style="top:10px; left:-10px;"></div>
-</div>
-
-<div id="result" class="hidden">
-  <h2>終了！</h2>
-  <p id="finalScore"></p>
-  <button onclick="location.reload()">もう一度</button>
 </div>
 
 <script>
-/* ===== 変数 ===== */
-let level = 1;
-let combo = 0;
-let score = 1.0;
-
-let gameTime = 60;
-let gameTimer = null;
-let questionTimer = null;
-let isGameActive = false;
-
-let currentDir = null;
+/* ===== 設定 ===== */
+const anglesDeg = [-90,-45,0,45,90,135,180,225];
+const anglesRad = anglesDeg.map(a=>a*Math.PI/180);
+const radius = 120;
+const centerPos = 160;
 
 const showTimes = [1200,1000,850,700,600,500,400];
-const arrows = ['⬆','↗','➡','↘','⬇','↙','⬅','↖'];
-const rackets = document.querySelectorAll('.racket');
 
-/* ===== 開始 ===== */
-function startGame(){
-  document.getElementById('start').classList.add('hidden');
-  document.getElementById('game').classList.remove('hidden');
+const arrow = document.getElementById('arrow');
+const result = document.getElementById('result');
+const levelEl = document.getElementById('level');
+const comboEl = document.getElementById('combo');
+const scoreEl = document.getElementById('score');
 
-  isGameActive = true;
-  gameTime = 60;
-  document.getElementById('timer').textContent = '⏱ 60';
+let rackets = [];
+let correctIndex = 0;
+let answered = false;
+let questionTimer = null;
 
-  gameTimer = setInterval(()=>{
-    gameTime--;
-    document.getElementById('timer').textContent = '⏱ ' + gameTime;
-    if(gameTime <= 0){
-      endGame();
-    }
-  },1000);
+let level = 1;
+let combo = 0;
+let maxCombo = 0;
 
-  nextQuestion();
-}
+/* ===== ラケット生成 ===== */
+anglesRad.forEach((angle,i)=>{
+  const btn = document.createElement('button');
+  btn.className = 'spin-btn';
 
-/* ===== 次の問題 ===== */
+  const x = centerPos + radius * Math.cos(angle) - 25;
+  const y = centerPos + radius * Math.sin(angle) - 25;
+
+  btn.style.left = x + 'px';
+  btn.style.top = y + 'px';
+
+  btn.onclick = ()=>answer(i);
+
+  rackets.push(btn);
+  document.getElementById('game').appendChild(btn);
+});
+
+/* ===== 出題 ===== */
 function nextQuestion(){
-  if(!isGameActive) return;
+  clearTimeout(questionTimer);
+  answered = false;
+  result.textContent = '';
 
   rackets.forEach(r=>r.classList.remove('active'));
 
-  currentDir = Math.floor(Math.random()*8);
-  rackets[currentDir].classList.add('active');
-  document.getElementById('center').textContent = arrows[currentDir];
+  correctIndex = Math.floor(Math.random()*8);
 
-  clearTimeout(questionTimer);
+  arrow.style.transform =
+    `rotate(${anglesDeg[correctIndex]+90}deg)`;
+
+  rackets[correctIndex].classList.add('active');
+
+  const showTime = showTimes[level-1];
+
   questionTimer = setTimeout(()=>{
-    judge(false);
-  }, showTimes[level-1]);
+    if(!answered){
+      judge(false);
+    }
+  }, showTime);
+}
+
+/* ===== 回答 ===== */
+function answer(index){
+  if(answered) return;
+  judge(index === correctIndex);
 }
 
 /* ===== 判定 ===== */
-rackets.forEach(r=>{
-  r.onclick = ()=>{
-    if(!isGameActive) return;
-    judge(Number(r.dataset.dir) === currentDir);
-  };
-});
-
-function judge(correct){
+function judge(isCorrect){
+  answered = true;
   clearTimeout(questionTimer);
 
-  if(correct){
+  rackets.forEach(r=>r.classList.remove('active'));
+
+  if(isCorrect){
+    result.textContent = '〇';
+    result.style.color = '#0f9';
     combo++;
+    maxCombo = Math.max(maxCombo, combo);
+
     if(combo >= 5 && level < 7){
       level++;
       combo = 0;
     }
-    score = Number(level + '.' + combo);
-  } else {
+  }else{
+    result.textContent = '✖';
+    result.style.color = '#f55';
     combo = 0;
   }
 
-  setTimeout(nextQuestion,300);
+  updateUI();
+  setTimeout(nextQuestion, 600);
 }
 
-/* ===== 終了 ===== */
-function endGame(){
-  isGameActive = false;
-  clearInterval(gameTimer);
-  clearTimeout(questionTimer);
-
-  document.getElementById('game').classList.add('hidden');
-  document.getElementById('result').classList.remove('hidden');
-  document.getElementById('finalScore').textContent =
-    'スコア：' + score;
+/* ===== 表示更新 ===== */
+function updateUI(){
+  levelEl.textContent = level;
+  comboEl.textContent = combo;
+  scoreEl.textContent = `${level}.${combo}`;
 }
+
+/* ===== 開始 ===== */
+nextQuestion();
 </script>
 
 </body>
 </html>
-
