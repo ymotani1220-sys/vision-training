@@ -40,11 +40,11 @@ body{
 #start h1{
   margin-bottom:20px;
   font-size:22px;
-  white-space:nowrap;   /* 強制1行 */
+  white-space:nowrap;
 }
 
 #start h1 .icon{
-  font-size:18px;       /* 絵文字だけ小さく */
+  font-size:18px;
   margin-right:4px;
 }
 
@@ -82,7 +82,6 @@ body{
   display:flex;
   justify-content:center;
   align-items:center;
-  flex-direction:column;
 }
 
 /* 矢印 */
@@ -95,15 +94,19 @@ body{
     0 0 8px #000;
 }
 
-/* 判定 */
+/* ===== 判定（ラケット外・上側） ===== */
 #result{
-  margin-top:8px;
-  height:34px;
-  font-size:32px;
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  height:40px;
+  font-size:36px;
   font-weight:bold;
   text-shadow:
     0 0 3px #000,
     0 0 6px #000;
+  pointer-events:none;
 }
 
 /* ラケット */
@@ -117,6 +120,7 @@ body{
   transition:0.2s;
 }
 
+/* グリップ */
 .spin-btn::after{
   content:'';
   position:absolute;
@@ -158,8 +162,10 @@ body{
 
     <div id="center">
       <div id="arrow">↑</div>
-      <div id="result"></div>
     </div>
+
+    <!-- 判定表示（外） -->
+    <div id="result"></div>
 
   </div>
 </div>
@@ -186,7 +192,6 @@ let questionTimer = null;
 
 let level = 1;
 let combo = 0;
-let maxCombo = 0;
 
 /* ===== スタート ===== */
 function startGame(){
@@ -253,15 +258,13 @@ function judge(isCorrect){
     result.textContent = '〇';
     result.style.color = '#0f9';
     combo++;
-    maxCombo = Math.max(maxCombo, combo);
-
     if(combo >= 5 && level < 7){
       level++;
       combo = 0;
     }
   }else{
     result.textContent = '✖';
-    result.style.color = '#f55';
+    result.style.color = '#f00';   // ✖は赤
     combo = 0;
   }
 
