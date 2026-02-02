@@ -3,54 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球 瞬間判断トレーニング</title>
+<title>瞬間判断トレーニング（回転判断）</title>
 
 <style>
 body {
-  font-family: sans-serif;
-  text-align: center;
-  background: #111;
-  color: #fff;
-  margin: 0;
-  transition: background 0.3s;
+  background:#111;
+  color:#fff;
+  font-family:sans-serif;
+  text-align:center;
+  margin:0;
 }
-.arrow { font-size: 100px; margin: 30px 0; }
-#feedback { font-size: 40px; height: 50px; }
-button { font-size:22px; padding:15px 25px; margin:10px; }
 .hidden { display:none; }
-#ranking { text-align:left; max-width:320px; margin:auto; }
+#timer { font-size:22px; margin:10px; }
+#center {
+  position:relative;
+  width:200px;
+  height:200px;
+  margin:30px auto;
+  border-radius:50%;
+  background:#222;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:60px;
+}
+.racket {
+  position:absolute;
+  width:60px;
+  height:60px;
+  background:#444;
+  border-radius:10px;
+  opacity:0.4;
+}
+.racket.active {
+  background:#0f9;
+  opacity:1;
+}
 </style>
 </head>
 
 <body>
 
 <div id="start">
-  <h1>🏓 瞬間判断トレーニング</h1>
-  <input id="playerName" placeholder="名前">
-  <br><br>
+  <h1>🏓 回転 瞬間判断トレーニング</h1>
   <button onclick="startGame()">スタート</button>
 </div>
 
 <div id="game" class="hidden">
-  👤 <span id="name"></span><br>
-  ⏱ <span id="time">60</span> 秒　
-  🎯 Lv <span id="level">1</span>　
-  🔥 <span id="combo">0</span><br>
-  ⭐ <span id="score">1.0</span>
+  <div id="timer">⏱ 60</div>
 
-  <div id="arrow" class="arrow"></div>
-  <div id="feedback"></div>
+  <div id="center">⬆</div>
 
-  <button onclick="answer('left')">←</button>
-  <button onclick="answer('up')">↑</button>
-  <button onclick="answer('right')">→</button>
+  <!-- 8方向ラケット -->
+  <div class="racket" data-dir="0" style="top:-10px; left:70px;"></div>
+  <div class="racket" data-dir="1" style="top:10px; right:-10px;"></div>
+  <div class="racket" data-dir="2" style="top:70px; right:-10px;"></div>
+  <div class="racket" data-dir="3" style="bottom:10px; right:-10px;"></div>
+  <div class="racket" data-dir="4" style="bottom:-10px; left:70px;"></div>
+  <div class="racket" data-dir="5" style="bottom:10px; left:-10px;"></div>
+  <div class="racket" data-dir="6" style="top:70px; left:-10px;"></div>
+  <div class="racket" data-dir="7" style="top:10px; left:-10px;"></div>
 </div>
 
 <div id="result" class="hidden">
-  <h2>🎉 結果</h2>
+  <h2>終了！</h2>
   <p id="finalScore"></p>
-  <h3>🏆 ランキング</h3>
-  <ol id="ranking"></ol>
   <button onclick="location.reload()">もう一度</button>
 </div>
 
@@ -58,43 +75,34 @@ button { font-size:22px; padding:15px 25px; margin:10px; }
 /* ===== 変数 ===== */
 let level = 1;
 let combo = 0;
-let maxCombo = 0;
-let time = 60;
-let timer = null;
+let score = 1.0;
+
+let gameTime = 60;
+let gameTimer = null;
 let questionTimer = null;
-let player = '';
-let answered = false;
-let current = '';
-let level7TotalCombo = 0;
+let isGameActive = false;
 
-const arrows = ['left','up','right'];
-const icons = {left:'←', up:'↑', right:'→'};
-const showTimes = [1500,1300,1100,900,750,600,450];
+let currentDir = null;
 
-const levelBackgrounds = {
-  1:'#111',
-  2:'#1a237e',
-  3:'#004d40',
-  4:'#263238',
-  5:'#3e2723',
-  6:'#4a148c',
-  7:'#b71c1c'
-};
+const showTimes = [1200,1000,850,700,600,500,400];
+const arrows = ['⬆','↗','➡','↘','⬇','↙','⬅','↖'];
+const rackets = document.querySelectorAll('.racket');
 
 /* ===== 開始 ===== */
 function startGame(){
-  player = document.getElementById('playerName').value || 'ゲスト';
-  document.getElementById('name').textContent = player;
-
   document.getElementById('start').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
 
-  updateBackground();
+  isGameActive = true;
+  gameTime = 60;
+  document.getElementById('timer').textContent = '⏱ 60';
 
-  timer = setInterval(()=>{
-    time--;
-    document.getElementById('time').textContent = time;
-    if(time<=0) endGame();
+  gameTimer = setInterval(()=>{
+    gameTime--;
+    document.getElementById('timer').textContent = '⏱ ' + gameTime;
+    if(gameTime <= 0){
+      endGame();
+    }
   },1000);
 
   nextQuestion();
@@ -102,114 +110,55 @@ function startGame(){
 
 /* ===== 次の問題 ===== */
 function nextQuestion(){
+  if(!isGameActive) return;
+
+  rackets.forEach(r=>r.classList.remove('active'));
+
+  currentDir = Math.floor(Math.random()*8);
+  rackets[currentDir].classList.add('active');
+  document.getElementById('center').textContent = arrows[currentDir];
+
   clearTimeout(questionTimer);
-  answered = false;
-  document.getElementById('feedback').textContent = '';
-
-  current = arrows[Math.floor(Math.random()*3)];
-  document.getElementById('arrow').textContent = icons[current];
-
   questionTimer = setTimeout(()=>{
-    if(!answered) judge(false);
+    judge(false);
   }, showTimes[level-1]);
 }
 
-/* ===== 回答 ===== */
-function answer(choice){
-  if(answered) return;
-  judge(choice === current);
-}
-
 /* ===== 判定 ===== */
-function judge(correct){
-  answered = true;
-  clearTimeout(questionTimer);
-  document.getElementById('arrow').textContent = '';
+rackets.forEach(r=>{
+  r.onclick = ()=>{
+    if(!isGameActive) return;
+    judge(Number(r.dataset.dir) === currentDir);
+  };
+});
 
-  const fb = document.getElementById('feedback');
+function judge(correct){
+  clearTimeout(questionTimer);
 
   if(correct){
-    fb.textContent = '✅';
     combo++;
-    maxCombo = Math.max(maxCombo, combo);
-
-    if(level < 7 && combo >= 5){
+    if(combo >= 5 && level < 7){
       level++;
       combo = 0;
     }
-
-    if(level === 7){
-      level7TotalCombo++;
-    }
-
+    score = Number(level + '.' + combo);
   } else {
-    fb.textContent = '❌';
     combo = 0;
   }
 
-  updateUI();
-  setTimeout(nextQuestion, 400);
-}
-
-/* ===== 表示更新 ===== */
-function updateUI(){
-  document.getElementById('level').textContent = level;
-  document.getElementById('combo').textContent = combo;
-
-  let scoreBase = level;
-  let scoreDecimal = maxCombo;
-
-  if(level === 7){
-    scoreBase = 7 + Math.floor(level7TotalCombo / 5);
-    scoreDecimal = level7TotalCombo % 5 + 1;
-  }
-
-  document.getElementById('score').textContent =
-    `${scoreBase}.${scoreDecimal}`;
-
-  updateBackground();
-}
-
-/* ===== 背景更新（安全） ===== */
-function updateBackground(){
-  document.body.style.background =
-    levelBackgrounds[level] || '#111';
+  setTimeout(nextQuestion,300);
 }
 
 /* ===== 終了 ===== */
 function endGame(){
-  clearInterval(timer);
+  isGameActive = false;
+  clearInterval(gameTimer);
   clearTimeout(questionTimer);
-
-  saveScore();
-  showRanking();
 
   document.getElementById('game').classList.add('hidden');
   document.getElementById('result').classList.remove('hidden');
   document.getElementById('finalScore').textContent =
-    `スコア：${document.getElementById('score').textContent}`;
-}
-
-/* ===== ランキング ===== */
-function saveScore(){
-  const score = Number(document.getElementById('score').textContent);
-  const r = {name:player, score};
-
-  const list = JSON.parse(localStorage.getItem('ranking')||'[]');
-  list.push(r);
-  list.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('ranking', JSON.stringify(list.slice(0,100)));
-}
-
-function showRanking(){
-  const list = JSON.parse(localStorage.getItem('ranking')||'[]');
-  const ol = document.getElementById('ranking');
-  ol.innerHTML = '';
-  list.forEach((r,i)=>{
-    const li = document.createElement('li');
-    li.textContent = `${i+1}. ${r.name}（${r.score}）`;
-    ol.appendChild(li);
-  });
+    'スコア：' + score;
 }
 </script>
 
