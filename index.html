@@ -15,20 +15,38 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
-  transition:background 0.4s;
 }
 
-/* ===== Lv7 脈動 ===== */
-@keyframes pulseBg {
-  0%   { background:#000; }
-  50%  { background:#111; }
-  100% { background:#000; }
+/* 画面共通 */
+.screen{
+  position:absolute;
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
 }
 
-body.pulse{
-  animation:pulseBg 2.2s infinite;
+.hidden{
+  display:none;
 }
 
+/* スタート画面 */
+#start{
+  background:#111;
+}
+
+#start h1{
+  margin-bottom:20px;
+}
+
+#start button{
+  font-size:22px;
+  padding:15px 30px;
+}
+
+/* ゲーム画面 */
 #game{
   position:relative;
   width:320px;
@@ -54,14 +72,14 @@ body.pulse{
   transform:translate(-50%,-50%);
   border-radius:50%;
   background:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
 }
 
 /* 矢印 */
 #arrow{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
   font-size:46px;
   font-weight:900;
   color:#f33;
@@ -70,12 +88,10 @@ body.pulse{
     0 0 8px #000;
 }
 
-/* 判定 */
+/* 判定（ボールとラケットの間） */
 #result{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, 55px);
+  margin-top:8px;
+  height:34px;
   font-size:32px;
   font-weight:bold;
   text-shadow:
@@ -114,20 +130,28 @@ body.pulse{
 
 <body>
 
-<div id="game">
+<!-- スタート画面 -->
+<div id="start" class="screen">
+  <h1>🏓 卓球 回転判断トレーニング</h1>
+  <button onclick="startGame()">スタート</button>
+</div>
 
-  <div id="info">
-    Lv <span id="level">1</span>　
-    🔥 <span id="combo">0</span>　
-    ⭐ <span id="score">1.0</span>
+<!-- ゲーム画面 -->
+<div id="gameScreen" class="screen hidden">
+  <div id="game">
+
+    <div id="info">
+      Lv <span id="level">1</span>　
+      🔥 <span id="combo">0</span>　
+      ⭐ <span id="score">1.0</span>
+    </div>
+
+    <div id="center">
+      <div id="arrow">↑</div>
+      <div id="result"></div>
+    </div>
+
   </div>
-
-  <div id="center">
-    <div id="arrow">↑</div>
-  </div>
-
-  <div id="result"></div>
-
 </div>
 
 <script>
@@ -138,17 +162,6 @@ const radius = 120;
 const centerPos = 160;
 
 const showTimes = [1200,1000,850,700,600,500,400];
-
-/* レベル別 背景色 */
-const levelColors = [
-  '#111',
-  '#0b2a3c',
-  '#123b1c',
-  '#4a3b0f',
-  '#4a1f0f',
-  '#4a0f2f',
-  '#000'
-];
 
 const arrow = document.getElementById('arrow');
 const result = document.getElementById('result');
@@ -163,6 +176,14 @@ let questionTimer = null;
 
 let level = 1;
 let combo = 0;
+let maxCombo = 0;
+
+/* ===== スタート ===== */
+function startGame(){
+  document.getElementById('start').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  nextQuestion();
+}
 
 /* ===== ラケット生成 ===== */
 anglesRad.forEach((angle,i)=>{
@@ -192,15 +213,17 @@ function nextQuestion(){
   correctIndex = Math.floor(Math.random()*8);
 
   arrow.style.transform =
-    `translate(-50%,-50%) rotate(${anglesDeg[correctIndex]+90}deg)`;
+    `rotate(${anglesDeg[correctIndex]+90}deg)`;
 
   rackets[correctIndex].classList.add('active');
+
+  const showTime = showTimes[level-1];
 
   questionTimer = setTimeout(()=>{
     if(!answered){
       judge(false);
     }
-  }, showTimes[level-1]);
+  }, showTime);
 }
 
 /* ===== 回答 ===== */
@@ -220,6 +243,8 @@ function judge(isCorrect){
     result.textContent = '〇';
     result.style.color = '#0f9';
     combo++;
+    maxCombo = Math.max(maxCombo, combo);
+
     if(combo >= 5 && level < 7){
       level++;
       combo = 0;
@@ -239,20 +264,7 @@ function updateUI(){
   levelEl.textContent = level;
   comboEl.textContent = combo;
   scoreEl.textContent = `${level}.${combo}`;
-
-  document.body.style.background = levelColors[level-1];
-
-  /* Lv7だけ脈動 */
-  if(level === 7){
-    document.body.classList.add('pulse');
-  }else{
-    document.body.classList.remove('pulse');
-  }
 }
-
-/* ===== 開始 ===== */
-updateUI();
-nextQuestion();
 </script>
 
 </body>
