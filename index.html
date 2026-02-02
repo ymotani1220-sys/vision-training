@@ -12,6 +12,7 @@ body {
   background: #111;
   color: #fff;
   margin: 0;
+  transition: background 0.3s;
 }
 .arrow { font-size: 100px; margin: 30px 0; }
 #feedback { font-size: 40px; height: 50px; }
@@ -70,6 +71,16 @@ const arrows = ['left','up','right'];
 const icons = {left:'←', up:'↑', right:'→'};
 const showTimes = [1500,1300,1100,900,750,600,450];
 
+const levelBackgrounds = {
+  1:'#111',
+  2:'#1a237e',
+  3:'#004d40',
+  4:'#263238',
+  5:'#3e2723',
+  6:'#4a148c',
+  7:'#b71c1c'
+};
+
 /* ===== 開始 ===== */
 function startGame(){
   player = document.getElementById('playerName').value || 'ゲスト';
@@ -77,6 +88,8 @@ function startGame(){
 
   document.getElementById('start').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
+
+  updateBackground();
 
   timer = setInterval(()=>{
     time--;
@@ -153,6 +166,14 @@ function updateUI(){
 
   document.getElementById('score').textContent =
     `${scoreBase}.${scoreDecimal}`;
+
+  updateBackground();
+}
+
+/* ===== 背景更新（安全） ===== */
+function updateBackground(){
+  document.body.style.background =
+    levelBackgrounds[level] || '#111';
 }
 
 /* ===== 終了 ===== */
