@@ -32,13 +32,20 @@ body{
   display:none;
 }
 
-/* スタート画面 */
+/* ===== スタート画面 ===== */
 #start{
   background:#111;
 }
 
 #start h1{
   margin-bottom:20px;
+  font-size:22px;
+  white-space:nowrap;   /* 強制1行 */
+}
+
+#start h1 .icon{
+  font-size:18px;       /* 絵文字だけ小さく */
+  margin-right:4px;
 }
 
 #start button{
@@ -46,7 +53,7 @@ body{
   padding:15px 30px;
 }
 
-/* ゲーム画面 */
+/* ===== ゲーム画面 ===== */
 #game{
   position:relative;
   width:320px;
@@ -88,7 +95,7 @@ body{
     0 0 8px #000;
 }
 
-/* 判定（ボールとラケットの間） */
+/* 判定 */
 #result{
   margin-top:8px;
   height:34px;
@@ -130,13 +137,16 @@ body{
 
 <body>
 
-<!-- スタート画面 -->
+<!-- ===== スタート画面 ===== -->
 <div id="start" class="screen">
-  <h1>🏓 卓球 回転判断トレーニング</h1>
+  <h1>
+    <span class="icon">🏓</span>
+    卓球回転判断トレーニング
+  </h1>
   <button onclick="startGame()">スタート</button>
 </div>
 
-<!-- ゲーム画面 -->
+<!-- ===== ゲーム画面 ===== -->
 <div id="gameScreen" class="screen hidden">
   <div id="game">
 
@@ -269,5 +279,3 @@ function updateUI(){
 
 </body>
 </html>
-
-
