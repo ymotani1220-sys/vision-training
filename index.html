@@ -27,18 +27,17 @@ body{
   justify-content:center;
   align-items:center;
 }
-
 .hidden{ display:none; }
 
-/* ===== スタート画面 ===== */
+/* ===== スタート ===== */
 #start h1{
-  margin-bottom:20px;
   font-size:22px;
   white-space:nowrap;
+  margin-bottom:20px;
 }
 #start button{
   font-size:22px;
-  padding:15px 30px;
+  padding:14px 32px;
 }
 
 /* ===== ゲーム ===== */
@@ -48,7 +47,7 @@ body{
   height:320px;
 }
 
-/* 上部情報 */
+/* 上部情報（〇✖より上） */
 #info{
   position:absolute;
   top:-90px;
@@ -68,20 +67,19 @@ body{
   border-radius:50%;
   background:#fff;
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
-  flex-direction:column;
 }
 
-/* 矢印 */
+/* 矢印（中心固定） */
 #arrow{
   font-size:46px;
   font-weight:900;
   color:#f33;
-  text-shadow:0 0 6px #000;
 }
 
-/* 判定 */
+/* 判定（上側・ラケットの内側） */
 #result{
   margin-top:6px;
   height:32px;
@@ -164,21 +162,25 @@ let level=1;
 let combo=0;
 
 /* ===== 60秒タイマー ===== */
-let gameTime = 60;
+let timeLeft = 60;
 let gameTimer = null;
+let gameEnded = false;
 
 /* ===== スタート ===== */
 function startGame(){
   document.getElementById('start').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
 
-  gameTime = 60;
-  timeEl.textContent = gameTime;
+  timeLeft = 60;
+  timeEl.textContent = timeLeft;
+  gameEnded = false;
 
   gameTimer = setInterval(()=>{
-    gameTime--;
-    timeEl.textContent = gameTime;
-    if(gameTime<=0) endGame();
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    if(timeLeft <= 0){
+      endGame();
+    }
   },1000);
 
   nextQuestion();
@@ -197,6 +199,8 @@ anglesRad.forEach((a,i)=>{
 
 /* ===== 出題 ===== */
 function nextQuestion(){
+  if(gameEnded) return;
+
   clearTimeout(questionTimer);
   answered=false;
   result.textContent='';
@@ -213,7 +217,7 @@ function nextQuestion(){
 
 /* ===== 回答 ===== */
 function answer(i){
-  if(answered) return;
+  if(answered || gameEnded) return;
   judge(i===correctIndex);
 }
 
@@ -241,10 +245,10 @@ function judge(ok){
 
 /* ===== 終了 ===== */
 function endGame(){
+  gameEnded = true;
   clearInterval(gameTimer);
   clearTimeout(questionTimer);
   alert(`終了！ スコア：${scoreEl.textContent}`);
-  location.reload();
 }
 
 /* ===== 表示更新 ===== */
