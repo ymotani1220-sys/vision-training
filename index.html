@@ -15,7 +15,6 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
-  transition:background 0.4s;
 }
 
 /* 画面共通 */
@@ -31,7 +30,7 @@ body{
 
 .hidden{ display:none; }
 
-/* スタート */
+/* ===== スタート画面 ===== */
 #start h1{
   margin-bottom:20px;
   font-size:22px;
@@ -42,32 +41,20 @@ body{
   padding:15px 30px;
 }
 
-/* ゲーム */
+/* ===== ゲーム ===== */
 #game{
   position:relative;
   width:320px;
   height:320px;
 }
 
-/* 情報 */
+/* 上部情報 */
 #info{
   position:absolute;
   top:-90px;
   width:100%;
   text-align:center;
   font-size:18px;
-}
-
-/* 判定 */
-#result{
-  position:absolute;
-  top:-35px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:34px;
-  font-weight:bold;
-  height:40px;
-  text-shadow:0 0 6px #000;
 }
 
 /* 中央ボール */
@@ -83,6 +70,7 @@ body{
   display:flex;
   justify-content:center;
   align-items:center;
+  flex-direction:column;
 }
 
 /* 矢印 */
@@ -90,7 +78,15 @@ body{
   font-size:46px;
   font-weight:900;
   color:#f33;
-  text-shadow:0 0 8px #000;
+  text-shadow:0 0 6px #000;
+}
+
+/* 判定 */
+#result{
+  margin-top:6px;
+  height:32px;
+  font-size:32px;
+  font-weight:bold;
 }
 
 /* ラケット */
@@ -119,94 +115,112 @@ body{
 
 <body>
 
+<!-- スタート -->
 <div id="start" class="screen">
   <h1>🏓 卓球回転判断トレーニング</h1>
   <button onclick="startGame()">スタート</button>
 </div>
 
+<!-- ゲーム -->
 <div id="gameScreen" class="screen hidden">
   <div id="game">
 
     <div id="info">
-      Lv <span id="level">1</span>
-      🔥 <span id="combo">0</span>
-      ⭐ <span id="score">1.0</span>
+      Lv <span id="level">1</span>　
+      🔥 <span id="combo">0</span>　
+      ⭐ <span id="score">1.0</span>　
+      ⏱ <span id="time">60</span>s
     </div>
-
-    <div id="result"></div>
 
     <div id="center">
       <div id="arrow">↑</div>
+      <div id="result"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-/* ===== 背景色（瞬間判断ゲーム準拠） ===== */
-const bgColors = [
-  '#111',
-  '#0b1a2a',
-  '#102a1c',
-  '#2a1c10',
-  '#2a1010',
-  '#1a102a',
-  '#2a002a'
-];
+/* ===== 設定 ===== */
+const anglesDeg = [-90,-45,0,45,90,135,180,225];
+const anglesRad = anglesDeg.map(a=>a*Math.PI/180);
+const radius = 120;
+const centerPos = 160;
+const showTimes = [1200,1000,850,700,600,500,400];
 
-const anglesDeg=[-90,-45,0,45,90,135,180,225];
-const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
-const radius=120, center=160;
-const showTimes=[1200,1000,850,700,600,500,400];
+const arrow = document.getElementById('arrow');
+const result = document.getElementById('result');
+const levelEl = document.getElementById('level');
+const comboEl = document.getElementById('combo');
+const scoreEl = document.getElementById('score');
+const timeEl  = document.getElementById('time');
 
-const arrow=document.getElementById('arrow');
-const result=document.getElementById('result');
-const levelEl=document.getElementById('level');
-const comboEl=document.getElementById('combo');
-const scoreEl=document.getElementById('score');
+let rackets=[];
+let correctIndex=0;
+let answered=false;
+let questionTimer=null;
 
-let rackets=[],correct=0,answered=false,timer=null;
-let level=1,combo=0;
+let level=1;
+let combo=0;
 
+/* ===== 60秒タイマー ===== */
+let gameTime = 60;
+let gameTimer = null;
+
+/* ===== スタート ===== */
 function startGame(){
   document.getElementById('start').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
-  updateBackground();
+
+  gameTime = 60;
+  timeEl.textContent = gameTime;
+
+  gameTimer = setInterval(()=>{
+    gameTime--;
+    timeEl.textContent = gameTime;
+    if(gameTime<=0) endGame();
+  },1000);
+
   nextQuestion();
 }
 
-/* ラケット生成 */
+/* ===== ラケット生成 ===== */
 anglesRad.forEach((a,i)=>{
   const b=document.createElement('button');
   b.className='spin-btn';
-  b.style.left=center+radius*Math.cos(a)-25+'px';
-  b.style.top =center+radius*Math.sin(a)-25+'px';
+  b.style.left=centerPos+radius*Math.cos(a)-25+'px';
+  b.style.top =centerPos+radius*Math.sin(a)-25+'px';
   b.onclick=()=>answer(i);
   rackets.push(b);
   document.getElementById('game').appendChild(b);
 });
 
+/* ===== 出題 ===== */
 function nextQuestion(){
-  clearTimeout(timer);
+  clearTimeout(questionTimer);
   answered=false;
   result.textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
 
-  correct=Math.floor(Math.random()*8);
-  arrow.style.transform=`rotate(${anglesDeg[correct]+90}deg)`;
-  rackets[correct].classList.add('active');
+  correctIndex=Math.floor(Math.random()*8);
+  arrow.style.transform=`rotate(${anglesDeg[correctIndex]+90}deg)`;
+  rackets[correctIndex].classList.add('active');
 
-  timer=setTimeout(()=>judge(false), showTimes[level-1]);
+  questionTimer=setTimeout(()=>{
+    if(!answered) judge(false);
+  },showTimes[level-1]);
 }
 
+/* ===== 回答 ===== */
 function answer(i){
   if(answered) return;
-  judge(i===correct);
+  judge(i===correctIndex);
 }
 
+/* ===== 判定 ===== */
 function judge(ok){
   answered=true;
-  clearTimeout(timer);
+  clearTimeout(questionTimer);
   rackets.forEach(r=>r.classList.remove('active'));
 
   if(ok){
@@ -215,7 +229,6 @@ function judge(ok){
     combo++;
     if(combo>=5 && level<7){
       level++; combo=0;
-      updateBackground();
     }
   }else{
     result.textContent='✖';
@@ -226,14 +239,19 @@ function judge(ok){
   setTimeout(nextQuestion,600);
 }
 
+/* ===== 終了 ===== */
+function endGame(){
+  clearInterval(gameTimer);
+  clearTimeout(questionTimer);
+  alert(`終了！ スコア：${scoreEl.textContent}`);
+  location.reload();
+}
+
+/* ===== 表示更新 ===== */
 function updateUI(){
   levelEl.textContent=level;
   comboEl.textContent=combo;
   scoreEl.textContent=`${level}.${combo}`;
-}
-
-function updateBackground(){
-  document.body.style.background = bgColors[level-1];
 }
 </script>
 
