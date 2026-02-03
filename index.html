@@ -15,6 +15,7 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
+  transition:background 0.4s;
 }
 
 /* 画面共通 */
@@ -27,33 +28,46 @@ body{
   justify-content:center;
   align-items:center;
 }
+
 .hidden{ display:none; }
 
-/* ===== スタート ===== */
+/* スタート */
 #start h1{
+  margin-bottom:20px;
   font-size:22px;
   white-space:nowrap;
-  margin-bottom:20px;
 }
 #start button{
   font-size:22px;
-  padding:14px 32px;
+  padding:15px 30px;
 }
 
-/* ===== ゲーム ===== */
+/* ゲーム */
 #game{
   position:relative;
   width:320px;
   height:320px;
 }
 
-/* 上部情報（〇✖より上） */
+/* 情報 */
 #info{
   position:absolute;
   top:-90px;
   width:100%;
   text-align:center;
   font-size:18px;
+}
+
+/* 判定 */
+#result{
+  position:absolute;
+  top:-35px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:34px;
+  font-weight:bold;
+  height:40px;
+  text-shadow:0 0 6px #000;
 }
 
 /* 中央ボール */
@@ -67,24 +81,16 @@ body{
   border-radius:50%;
   background:#fff;
   display:flex;
-  flex-direction:column;
   justify-content:center;
   align-items:center;
 }
 
-/* 矢印（中心固定） */
+/* 矢印 */
 #arrow{
   font-size:46px;
   font-weight:900;
   color:#f33;
-}
-
-/* 判定（上側・ラケットの内側） */
-#result{
-  margin-top:6px;
-  height:32px;
-  font-size:32px;
-  font-weight:bold;
+  text-shadow:0 0 8px #000;
 }
 
 /* ラケット */
@@ -113,118 +119,94 @@ body{
 
 <body>
 
-<!-- スタート -->
 <div id="start" class="screen">
   <h1>🏓 卓球回転判断トレーニング</h1>
   <button onclick="startGame()">スタート</button>
 </div>
 
-<!-- ゲーム -->
 <div id="gameScreen" class="screen hidden">
   <div id="game">
 
     <div id="info">
-      Lv <span id="level">1</span>　
-      🔥 <span id="combo">0</span>　
-      ⭐ <span id="score">1.0</span>　
-      ⏱ <span id="time">60</span>s
+      Lv <span id="level">1</span>
+      🔥 <span id="combo">0</span>
+      ⭐ <span id="score">1.0</span>
     </div>
+
+    <div id="result"></div>
 
     <div id="center">
       <div id="arrow">↑</div>
-      <div id="result"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-/* ===== 設定 ===== */
-const anglesDeg = [-90,-45,0,45,90,135,180,225];
-const anglesRad = anglesDeg.map(a=>a*Math.PI/180);
-const radius = 120;
-const centerPos = 160;
-const showTimes = [1200,1000,850,700,600,500,400];
+/* ===== 背景色（瞬間判断ゲーム準拠） ===== */
+const bgColors = [
+  '#111',
+  '#0b1a2a',
+  '#102a1c',
+  '#2a1c10',
+  '#2a1010',
+  '#1a102a',
+  '#2a002a'
+];
 
-const arrow = document.getElementById('arrow');
-const result = document.getElementById('result');
-const levelEl = document.getElementById('level');
-const comboEl = document.getElementById('combo');
-const scoreEl = document.getElementById('score');
-const timeEl  = document.getElementById('time');
+const anglesDeg=[-90,-45,0,45,90,135,180,225];
+const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
+const radius=120, center=160;
+const showTimes=[1200,1000,850,700,600,500,400];
 
-let rackets=[];
-let correctIndex=0;
-let answered=false;
-let questionTimer=null;
+const arrow=document.getElementById('arrow');
+const result=document.getElementById('result');
+const levelEl=document.getElementById('level');
+const comboEl=document.getElementById('combo');
+const scoreEl=document.getElementById('score');
 
-let level=1;
-let combo=0;
+let rackets=[],correct=0,answered=false,timer=null;
+let level=1,combo=0;
 
-/* ===== 60秒タイマー ===== */
-let timeLeft = 60;
-let gameTimer = null;
-let gameEnded = false;
-
-/* ===== スタート ===== */
 function startGame(){
   document.getElementById('start').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
-
-  timeLeft = 60;
-  timeEl.textContent = timeLeft;
-  gameEnded = false;
-
-  gameTimer = setInterval(()=>{
-    timeLeft--;
-    timeEl.textContent = timeLeft;
-    if(timeLeft <= 0){
-      endGame();
-    }
-  },1000);
-
+  updateBackground();
   nextQuestion();
 }
 
-/* ===== ラケット生成 ===== */
+/* ラケット生成 */
 anglesRad.forEach((a,i)=>{
   const b=document.createElement('button');
   b.className='spin-btn';
-  b.style.left=centerPos+radius*Math.cos(a)-25+'px';
-  b.style.top =centerPos+radius*Math.sin(a)-25+'px';
+  b.style.left=center+radius*Math.cos(a)-25+'px';
+  b.style.top =center+radius*Math.sin(a)-25+'px';
   b.onclick=()=>answer(i);
   rackets.push(b);
   document.getElementById('game').appendChild(b);
 });
 
-/* ===== 出題 ===== */
 function nextQuestion(){
-  if(gameEnded) return;
-
-  clearTimeout(questionTimer);
+  clearTimeout(timer);
   answered=false;
   result.textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
 
-  correctIndex=Math.floor(Math.random()*8);
-  arrow.style.transform=`rotate(${anglesDeg[correctIndex]+90}deg)`;
-  rackets[correctIndex].classList.add('active');
+  correct=Math.floor(Math.random()*8);
+  arrow.style.transform=`rotate(${anglesDeg[correct]+90}deg)`;
+  rackets[correct].classList.add('active');
 
-  questionTimer=setTimeout(()=>{
-    if(!answered) judge(false);
-  },showTimes[level-1]);
+  timer=setTimeout(()=>judge(false), showTimes[level-1]);
 }
 
-/* ===== 回答 ===== */
 function answer(i){
-  if(answered || gameEnded) return;
-  judge(i===correctIndex);
+  if(answered) return;
+  judge(i===correct);
 }
 
-/* ===== 判定 ===== */
 function judge(ok){
   answered=true;
-  clearTimeout(questionTimer);
+  clearTimeout(timer);
   rackets.forEach(r=>r.classList.remove('active'));
 
   if(ok){
@@ -233,6 +215,7 @@ function judge(ok){
     combo++;
     if(combo>=5 && level<7){
       level++; combo=0;
+      updateBackground();
     }
   }else{
     result.textContent='✖';
@@ -243,19 +226,14 @@ function judge(ok){
   setTimeout(nextQuestion,600);
 }
 
-/* ===== 終了 ===== */
-function endGame(){
-  gameEnded = true;
-  clearInterval(gameTimer);
-  clearTimeout(questionTimer);
-  alert(`終了！ スコア：${scoreEl.textContent}`);
-}
-
-/* ===== 表示更新 ===== */
 function updateUI(){
   levelEl.textContent=level;
   comboEl.textContent=combo;
   scoreEl.textContent=`${level}.${combo}`;
+}
+
+function updateBackground(){
+  document.body.style.background = bgColors[level-1];
 }
 </script>
 
