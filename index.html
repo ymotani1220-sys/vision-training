@@ -28,7 +28,6 @@ body{
   justify-content:center;
   align-items:center;
 }
-
 .hidden{ display:none; }
 
 /* スタート */
@@ -131,6 +130,7 @@ body{
       Lv <span id="level">1</span>
       🔥 <span id="combo">0</span>
       ⭐ <span id="score">1.0</span>
+      ⏱ <span id="time">60</span>
     </div>
 
     <div id="result"></div>
@@ -164,14 +164,36 @@ const result=document.getElementById('result');
 const levelEl=document.getElementById('level');
 const comboEl=document.getElementById('combo');
 const scoreEl=document.getElementById('score');
+const timeEl=document.getElementById('time');
 
 let rackets=[],correct=0,answered=false,timer=null;
 let level=1,combo=0;
 
+/* ===== 60秒タイマー ===== */
+let timeLeft = 60;
+let gameTimer = null;
+let gameEnd = false;
+
 function startGame(){
   document.getElementById('start').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
+
+  level=1; combo=0;
+  timeLeft=60;
+  timeEl.textContent=timeLeft;
+  gameEnd=false;
+
+  updateUI();
   updateBackground();
+
+  gameTimer=setInterval(()=>{
+    timeLeft--;
+    timeEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      endGame();
+    }
+  },1000);
+
   nextQuestion();
 }
 
@@ -187,6 +209,8 @@ anglesRad.forEach((a,i)=>{
 });
 
 function nextQuestion(){
+  if(gameEnd) return;
+
   clearTimeout(timer);
   answered=false;
   result.textContent='';
@@ -200,11 +224,13 @@ function nextQuestion(){
 }
 
 function answer(i){
-  if(answered) return;
+  if(answered || gameEnd) return;
   judge(i===correct);
 }
 
 function judge(ok){
+  if(gameEnd) return;
+
   answered=true;
   clearTimeout(timer);
   rackets.forEach(r=>r.classList.remove('active'));
@@ -234,6 +260,13 @@ function updateUI(){
 
 function updateBackground(){
   document.body.style.background = bgColors[level-1];
+}
+
+function endGame(){
+  gameEnd=true;
+  clearInterval(gameTimer);
+  clearTimeout(timer);
+  alert(`終了！ スコア：${scoreEl.textContent}`);
 }
 </script>
 
