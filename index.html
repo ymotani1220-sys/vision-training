@@ -17,8 +17,6 @@ body{
   height:100vh;
   transition:background 0.4s;
 }
-
-/* ===== 共通 ===== */
 .screen{
   position:absolute;
   width:100%;
@@ -48,13 +46,12 @@ button{
   margin:10px 0;
 }
 
-/* ===== 回転判断（元コード維持） ===== */
+/* ===== 共通ゲームUI ===== */
 #game{
   position:relative;
   width:320px;
   height:320px;
 }
-
 #info{
   position:absolute;
   top:-90px;
@@ -62,7 +59,6 @@ button{
   text-align:center;
   font-size:18px;
 }
-
 #result{
   position:absolute;
   top:-35px;
@@ -72,7 +68,6 @@ button{
   font-weight:bold;
   height:40px;
 }
-
 #center{
   position:absolute;
   top:50%;
@@ -86,13 +81,13 @@ button{
   justify-content:center;
   align-items:center;
 }
-
 #arrow{
   font-size:46px;
   font-weight:900;
   color:#f33;
 }
 
+/* ===== ラケット ===== */
 .spin-btn{
   position:absolute;
   width:50px;
@@ -128,172 +123,179 @@ button{
   <h1>🏓 卓球トレーニング</h1>
   <div class="menu">
     <button onclick="startSpin()">回転判断トレーニング</button>
-    <button onclick="alert('瞬間判断は後で接続')">瞬間判断ゲーム</button>
+    <button onclick="startQuick()">瞬間判断トレーニング</button>
   </div>
 </div>
 
 <!-- ===== 回転判断 ===== -->
 <div id="spinScreen" class="screen hidden">
   <div id="game">
-
     <div id="info">
-      Lv <span id="level">1</span>
-      🔥 <span id="combo">0</span>
-      ⭐ <span id="score">1.0</span>
-      ⏱ <span id="time">60</span>
+      Lv <span id="spinLevel">1</span>
+      🔥 <span id="spinCombo">0</span>
+      ⭐ <span id="spinScore">1.0</span>
+      ⏱ <span id="spinTime">60</span>
     </div>
-
     <div id="result"></div>
-
-    <div id="center">
-      <div id="arrow">↑</div>
-    </div>
-
+    <div id="center"><div id="arrow">↑</div></div>
   </div>
 </div>
 
-<!-- ===== 結果 ===== -->
 <div id="spinResult" class="screen hidden">
-  <h2>🎉 結果</h2>
-  <p id="finalScore"></p>
-
+  <h2>🎉 回転判断 結果</h2>
+  <p id="spinFinal"></p>
   <div id="ranking">
     <h3>🏆 ランキング</h3>
-    <ol id="rankingList"></ol>
+    <ol id="spinRanking"></ol>
   </div>
+  <button onclick="backTop()">トップへ戻る</button>
+</div>
 
+<!-- ===== 瞬間判断 ===== -->
+<div id="quickScreen" class="screen hidden">
+  <div id="game">
+    <div id="info">
+      Lv <span id="quickLevel">1</span>
+      ⭐ <span id="quickScore">0</span>
+      ⏱ <span id="quickTime">60</span>
+    </div>
+  </div>
+</div>
+
+<div id="quickResult" class="screen hidden">
+  <h2>🎉 瞬間判断 結果</h2>
+  <p id="quickFinal"></p>
   <button onclick="backTop()">トップへ戻る</button>
 </div>
 
 <script>
-/* ===== 画面切替 ===== */
+/* ===== 共通 ===== */
+const bgColors=['#111','#0b1a2a','#102a1c','#2a1c10','#2a1010','#1a102a','#2a002a'];
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
+function backTop(){
+  document.body.style.background='#111';
+  show('top');
+}
 
-/* ===== 回転判断ロジック（そのまま） ===== */
-const bgColors=['#111','#0b1a2a','#102a1c','#2a1c10','#2a1010','#1a102a','#2a002a'];
+/* ===== 回転判断 ===== */
 const anglesDeg=[-90,-45,0,45,90,135,180,225];
 const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
-const radius=120, center=160;
+const radius=120,center=160;
 const showTimes=[1200,1000,850,700,600,500,400];
 
+let spinLevel=1,spinCombo=0,spinTime=60,spinTimer=null,spinEnd=false;
+let correct=0,answered=false,timer=null;
 const arrow=document.getElementById('arrow');
 const result=document.getElementById('result');
-const levelEl=document.getElementById('level');
-const comboEl=document.getElementById('combo');
-const scoreEl=document.getElementById('score');
-const timeEl=document.getElementById('time');
-
-let rackets=[],correct=0,answered=false,timer=null;
-let level=1,combo=0;
-let timeLeft=60,gameTimer=null,gameEnd=false;
+const rackets=[];
 
 anglesRad.forEach((a,i)=>{
   const b=document.createElement('button');
   b.className='spin-btn';
   b.style.left=center+radius*Math.cos(a)-25+'px';
   b.style.top =center+radius*Math.sin(a)-25+'px';
-  b.onclick=()=>answer(i);
+  b.onclick=()=>spinAnswer(i);
   rackets.push(b);
-  document.getElementById('game').appendChild(b);
+  document.querySelector('#spinScreen #game').appendChild(b);
 });
 
 function startSpin(){
   show('spinScreen');
-  level=1; combo=0; timeLeft=60; gameEnd=false;
-  updateUI(); updateBackground();
-  timeEl.textContent=timeLeft;
-
-  gameTimer=setInterval(()=>{
-    timeLeft--;
-    timeEl.textContent=timeLeft;
-    if(timeLeft<=0) endGame();
+  spinLevel=1; spinCombo=0; spinTime=60; spinEnd=false;
+  updateSpinUI(); updateBG();
+  spinTimer=setInterval(()=>{
+    spinTime--;
+    document.getElementById('spinTime').textContent=spinTime;
+    if(spinTime<=0) endSpin();
   },1000);
-
-  nextQuestion();
+  nextSpin();
 }
-
-function nextQuestion(){
-  if(gameEnd) return;
-  clearTimeout(timer);
-  answered=false;
-  result.textContent='';
+function nextSpin(){
+  if(spinEnd) return;
+  answered=false; result.textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
-
   correct=Math.floor(Math.random()*8);
   arrow.style.transform=`rotate(${anglesDeg[correct]+90}deg)`;
   rackets[correct].classList.add('active');
-
-  timer=setTimeout(()=>judge(false), showTimes[level-1]);
+  timer=setTimeout(()=>judgeSpin(false),showTimes[spinLevel-1]);
 }
-
-function answer(i){
-  if(answered||gameEnd) return;
-  judge(i===correct);
+function spinAnswer(i){
+  if(answered||spinEnd) return;
+  judgeSpin(i===correct);
 }
-
-function judge(ok){
+function judgeSpin(ok){
   answered=true;
   clearTimeout(timer);
   rackets.forEach(r=>r.classList.remove('active'));
-
   if(ok){
-    result.textContent='〇';
-    result.style.color='#0f9';
-    combo++;
-    if(combo>=5&&level<7){ level++; combo=0; updateBackground(); }
+    result.textContent='〇'; result.style.color='#0f9';
+    spinCombo++;
+    if(spinCombo>=5&&spinLevel<7){spinLevel++;spinCombo=0;updateBG();}
   }else{
-    result.textContent='✖';
-    result.style.color='#f00';
-    combo=0;
+    result.textContent='✖'; result.style.color='#f00';
+    spinCombo=0;
   }
-  updateUI();
-  setTimeout(nextQuestion,600);
+  updateSpinUI();
+  setTimeout(nextSpin,600);
 }
-
-function updateUI(){
-  levelEl.textContent=level;
-  comboEl.textContent=combo;
-  scoreEl.textContent=`${level}.${combo}`;
+function updateSpinUI(){
+  document.getElementById('spinLevel').textContent=spinLevel;
+  document.getElementById('spinCombo').textContent=spinCombo;
+  document.getElementById('spinScore').textContent=`${spinLevel}.${spinCombo}`;
 }
-
-function updateBackground(){
-  document.body.style.background=bgColors[level-1];
-}
-
-function endGame(){
-  gameEnd=true;
-  clearInterval(gameTimer);
-  clearTimeout(timer);
-  saveScore();
-  showRanking();
+function updateBG(){ document.body.style.background=bgColors[spinLevel-1]; }
+function endSpin(){
+  spinEnd=true;
+  clearInterval(spinTimer);
+  document.getElementById('spinFinal').textContent=
+    `スコア：${spinLevel}.${spinCombo}`;
   show('spinResult');
-  document.getElementById('finalScore').textContent=`スコア：${scoreEl.textContent}`;
 }
 
-function saveScore(){
-  const list=JSON.parse(localStorage.getItem('spinRanking')||'[]');
-  list.push(Number(scoreEl.textContent));
-  list.sort((a,b)=>b-a);
-  localStorage.setItem('spinRanking',JSON.stringify(list.slice(0,20)));
-}
+/* ===== 瞬間判断 ===== */
+let quickLevel=1,quickScore=0,quickTime=60,quickTimer=null;
+let quickCorrect=0;
 
-function showRanking(){
-  const list=JSON.parse(localStorage.getItem('spinRanking')||'[]');
-  const ol=document.getElementById('rankingList');
-  ol.innerHTML='';
-  list.forEach((s,i)=>{
-    const li=document.createElement('li');
-    li.textContent=`${i+1}. ${s}`;
-    ol.appendChild(li);
+function startQuick(){
+  show('quickScreen');
+  quickLevel=1; quickScore=0; quickTime=60;
+  document.getElementById('quickScore').textContent=0;
+  document.body.style.background=bgColors[0];
+  quickTimer=setInterval(()=>{
+    quickTime--;
+    document.getElementById('quickTime').textContent=quickTime;
+    if(quickTime<=0) endQuick();
+  },1000);
+  nextQuick();
+}
+function nextQuick(){
+  const idx=Math.floor(Math.random()*8);
+  rackets.forEach(r=>r.classList.remove('active'));
+  rackets[idx].classList.add('active');
+  quickCorrect=idx;
+}
+rackets.forEach((b,i)=>{
+  b.addEventListener('click',()=>{
+    if(document.getElementById('quickScreen').classList.contains('hidden'))return;
+    if(i===quickCorrect){
+      quickScore++;
+      if(quickScore%5===0&&quickLevel<7){
+        quickLevel++;
+        document.body.style.background=bgColors[quickLevel-1];
+      }
+    }
+    document.getElementById('quickScore').textContent=quickScore;
+    nextQuick();
   });
-}
-
-function backTop(){
-  document.body.style.background='#111';
-  show('top');
+});
+function endQuick(){
+  clearInterval(quickTimer);
+  document.getElementById('quickFinal').textContent=
+    `スコア：${quickScore}`;
+  show('quickResult');
 }
 </script>
 
