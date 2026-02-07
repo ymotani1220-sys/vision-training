@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球トレーニング - 全世代対応ver</title>
+<title>卓球トレーニング - スコア進化ver</title>
 
 <style>
 body{
@@ -15,9 +15,9 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
-  transition:background 0.8s ease; /* 変化をより穏やかに */
+  transition:background 0.8s ease;
   overflow: hidden;
-  touch-action: manipulation; /* スマホのダブルタップズーム防止 */
+  touch-action: manipulation;
 }
 .screen{
   position:absolute;
@@ -31,10 +31,13 @@ body{
 .hidden{display:none}
 button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius:12px;border:none;background:#eee;color:#111;font-weight:bold;}
 
+/* ===== 共通UI ===== */
+.info-panel { font-size: 20px; margin-bottom: 10px; text-align: center; line-height: 1.5; }
+.score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
+
 /* ===== 回転判断 ===== */
 #spinGame{position:relative;width:320px;height:320px}
-#spinInfo{position:absolute;top:-90px;width:100%;text-align:center;font-size:18px;}
-#resultText{position:absolute;top:-35px;left:50%;transform:translateX(-50%);
+#resultText{position:absolute;top:-40px;left:50%;transform:translateX(-50%);
   font-size:40px;font-weight:bold;height:45px}
 #center{
   position:absolute;top:50%;left:50%;
@@ -52,9 +55,9 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 .spin-btn.active{background:#0f9;box-shadow: 0 0 20px #0f9;}
 
 /* ===== 瞬間判断 ===== */
-.arrow-display{font-size:130px;margin:10px;height:150px;line-height:150px;}
+.arrow-display{font-size:130px;margin:5px;height:140px;line-height:140px;}
 #feedback{font-size:45px;height:55px;font-weight:bold;}
-.flash-controls button{background:#555;color:white;min-width: 90px;font-size:35px;margin:5px;}
+.flash-controls button{background:#555;color:white;min-width: 90px;font-size:35px;}
 </style>
 </head>
 
@@ -62,15 +65,16 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 
 <div id="top" class="screen">
   <h1 style="margin-bottom:30px;">🏓 卓球トレーニング</h1>
-  <button onclick="startSpin()">回転判断 (ゆったり〜)</button>
-  <button onclick="startFlash()">瞬間判断 (ゆったり〜)</button>
+  <button onclick="startSpin()">回転判断トレーニング</button>
+  <button onclick="startFlash()">瞬間判断トレーニング</button>
 </div>
 
 <div id="spinScreen" class="screen hidden">
+  <div class="info-panel">
+    ⏱ <span id="spinTimeDisp">60</span><br>
+    スコア：<span id="spinScoreDisp" class="score-highlight">1.0</span>
+  </div>
   <div id="spinGame">
-    <div id="spinInfo">
-      Lv <span id="spinLvDisp">1</span> | 🔥 <span id="spinComboDisp">0</span> | ⏱ <span id="spinTimeDisp">60</span>
-    </div>
     <div id="resultText"></div>
     <div id="center"><div id="arrow">↑</div></div>
   </div>
@@ -78,8 +82,10 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 
 <div id="flashScreen" class="screen hidden">
   <div id="flashGame" style="text-align:center;">
-    <div style="font-size:18px; margin-bottom:10px;">⏱ <span id="flashTimeDisp">60</span></div>
-    <div style="font-size:18px;">Lv <span id="flashLvDisp">1</span> | 🔥 <span id="flashComboDisp">0</span></div>
+    <div class="info-panel">
+      ⏱ <span id="flashTimeDisp">60</span><br>
+      スコア：<span id="flashScoreDisp" class="score-highlight">1.0</span>
+    </div>
     <div id="flashArrow" class="arrow-display"></div>
     <div id="feedback"></div>
     <div class="flash-controls">
@@ -91,14 +97,15 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 </div>
 
 <div id="end" class="screen hidden">
-  <h2 style="font-size:32px;">お疲れ様でした！</h2>
-  <p id="finalScore" style="font-size:24px;"></p>
-  <button onclick="backTop()">もう一度あそぶ</button>
+  <h2 style="font-size:32px;">トレーニング終了！</h2>
+  <p style="font-size:18px; color:#ccc;">今回の記録</p>
+  <p id="finalScore" class="score-highlight" style="font-size:48px; margin:10px 0;"></p>
+  <button onclick="backTop()">トップへ戻る</button>
 </div>
 
 <script>
-/* ===== 共通 ===== */
-const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35'];
+/* ===== 共通設定 ===== */
+const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35','#4a148c','#004d40'];
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
@@ -111,8 +118,8 @@ function updateBg(lvl){
 const anglesDeg=[-90,-45,0,45,90,135,180,225];
 const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
 const radius=125, center=160;
-// レベルごとの制限時間（ミリ秒）
-const spinShowTimes=[1500, 1200, 1000, 850, 700, 550, 400];
+// Lv1〜Lv8以降の速度設定
+const spinShowTimes=[1500, 1200, 1000, 850, 700, 550, 450, 350];
 
 let rackets=[], correctIdx=0, answered=false;
 let spinLvl=1, spinCombo=0, spinTimeLeft=60, spinTimer=null, spinNextTimer=null;
@@ -131,7 +138,7 @@ anglesRad.forEach((a,i)=>{
 function startSpin(){
   show('spinScreen');
   spinLvl=1; spinCombo=0; spinTimeLeft=60;
-  updateSpinUI(); updateBg(1);
+  updateSpinScore(); updateBg(1);
   if(spinTimer) clearInterval(spinTimer);
   spinTimer=setInterval(()=>{
     spinTimeLeft--;
@@ -152,8 +159,8 @@ function nextSpin(){
   rackets[correctIdx].classList.add('active');
   
   if(spinNextTimer) clearTimeout(spinNextTimer);
-  // レベルに応じて待ち時間を変える
-  spinNextTimer=setTimeout(()=>judgeSpin(false), spinShowTimes[spinLvl-1]);
+  const currentSpeed = spinShowTimes[Math.min(spinLvl-1, spinShowTimes.length-1)];
+  spinNextTimer=setTimeout(()=>judgeSpin(false), currentSpeed);
 }
 
 function judgeSpin(ok){
@@ -165,41 +172,36 @@ function judgeSpin(ok){
   const resEl = document.getElementById('resultText');
   if(ok){
     resEl.textContent='〇'; resEl.style.color='#0f9'; spinCombo++;
-    if(spinCombo >= 5 && spinLvl < 7){
-      spinLvl++; spinCombo=0;
-      updateBg(spinLvl);
-    }
+    if(spinCombo >= 5){ spinLvl++; spinCombo=0; updateBg(spinLvl); }
   } else {
     resEl.textContent='✖'; resEl.style.color='#f00'; spinCombo=0;
   }
-  updateSpinUI();
+  updateSpinScore();
   setTimeout(nextSpin, 600);
 }
 
-function updateSpinUI(){
-  document.getElementById('spinLvDisp').textContent=spinLvl;
-  document.getElementById('spinComboDisp').textContent=spinCombo;
+function updateSpinScore(){
+  document.getElementById('spinScoreDisp').textContent = `${spinLvl}.${spinCombo}`;
 }
 
 function endSpin(){
   clearInterval(spinTimer);
   clearTimeout(spinNextTimer);
-  document.getElementById('finalScore').textContent=`回転判断：レベル ${spinLvl}`;
+  document.getElementById('finalScore').textContent = `${spinLvl}.${spinCombo}`;
   show('end');
 }
 
 /* ================= 瞬間判断 (Flash) ================= */
 const arrows=['left','up','right'];
 const icons={left:'←',up:'↑',right:'→'};
-// レベルごとの次の矢印までの待ち時間（ミリ秒）
-const flashWaitTimes=[400, 350, 300, 250, 200, 150, 100];
+const flashWaitTimes=[450, 400, 350, 300, 250, 200, 150, 100];
 
 let flashLvl=1, flashCombo=0, flashTimeLeft=60, flashTimer=null, currentDir='';
 
 function startFlash(){
   show('flashScreen');
   flashLvl=1; flashCombo=0; flashTimeLeft=60;
-  updateFlashUI(); updateBg(1);
+  updateFlashScore(); updateBg(1);
   if(flashTimer) clearInterval(flashTimer);
   flashTimer=setInterval(()=>{
     flashTimeLeft--;
@@ -220,30 +222,25 @@ function answerFlash(a){
   const fb = document.getElementById('feedback');
   if(a===currentDir){
     fb.textContent='〇'; fb.style.color='#0f9'; flashCombo++;
-    if(flashCombo >= 5 && flashLvl < 7){
-      flashLvl++; flashCombo=0;
-      updateBg(flashLvl);
-    }
+    if(flashCombo >= 5){ flashLvl++; flashCombo=0; updateBg(flashLvl); }
   } else {
     fb.textContent='✖'; fb.style.color='#f00'; flashCombo=0;
   }
-  updateFlashUI();
-  // レベルに応じて次の問題までの時間を変える（テンポアップ）
-  setTimeout(()=>{fb.textContent=''; nextFlash();}, flashWaitTimes[flashLvl-1]);
+  updateFlashScore();
+  const currentWait = flashWaitTimes[Math.min(flashLvl-1, flashWaitTimes.length-1)];
+  setTimeout(()=>{fb.textContent=''; nextFlash();}, currentWait);
 }
 
-function updateFlashUI(){
-  document.getElementById('flashLvDisp').textContent=flashLvl;
-  document.getElementById('flashComboDisp').textContent=flashCombo;
+function updateFlashScore(){
+  document.getElementById('flashScoreDisp').textContent = `${flashLvl}.${flashCombo}`;
 }
 
 function endFlash(){
   clearInterval(flashTimer);
-  document.getElementById('finalScore').textContent=`瞬間判断：レベル ${flashLvl}`;
+  document.getElementById('finalScore').textContent = `${flashLvl}.${flashCombo}`;
   show('end');
 }
 
-/* ===== 戻る ===== */
 function backTop(){
   updateBg(1);
   show('top');
