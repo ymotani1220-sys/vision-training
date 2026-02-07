@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球 回転判断トレーニング</title>
+<title>卓球トレーニング - 覚醒ver</title>
 
 <style>
 body{
@@ -16,6 +16,7 @@ body{
   align-items:center;
   height:100vh;
   transition:background 0.4s;
+  overflow: hidden;
 }
 .screen{
   position:absolute;
@@ -27,22 +28,16 @@ body{
   align-items:center;
 }
 .hidden{display:none}
-button{font-size:22px;padding:14px 30px}
+button{font-size:20px;padding:14px 26px;margin:10px;cursor:pointer;border-radius:8px;border:none;}
 
 /* ===== トップ ===== */
-#top h1{font-size:22px;margin-bottom:20px}
+#top h1{font-size:22px}
 
-/* ===== ゲーム ===== */
-#game{position:relative;width:320px;height:320px}
-#info{
-  position:absolute;top:-90px;width:100%;
-  text-align:center;font-size:18px
-}
-#result{
-  position:absolute;top:-35px;left:50%;
-  transform:translateX(-50%);
-  font-size:34px;font-weight:bold;height:40px
-}
+/* ===== 回転判断 ===== */
+#spinGame{position:relative;width:320px;height:320px}
+#spinInfo{position:absolute;top:-90px;width:100%;text-align:center;line-height:1.6}
+#resultText{position:absolute;top:-35px;left:50%;transform:translateX(-50%);
+  font-size:34px;font-weight:bold;height:40px}
 #center{
   position:absolute;top:50%;left:50%;
   width:80px;height:80px;
@@ -50,169 +45,199 @@ button{font-size:22px;padding:14px 30px}
   border-radius:50%;background:#fff;
   display:flex;justify-content:center;align-items:center
 }
-#arrow{font-size:46px;font-weight:900;color:#f33}
-
-/* ラケット */
+#arrow{font-size:46px;font-weight:900;color:#f33;transition: transform 0.1s;}
 .spin-btn{
   position:absolute;width:50px;height:50px;
-  border-radius:50%;background:#c00;border:none
+  border-radius:50%;background:#444;border:2px solid #fff;
 }
-.spin-btn.active{background:#0f9}
+.spin-btn.active{background:#0f9;box-shadow: 0 0 15px #0f9;}
+
+/* ===== 瞬間判断 ===== */
+#flashGame{text-align: center;}
+#flashGame .arrow-display{font-size:100px;margin:20px;height:120px;line-height:120px}
+#feedback{font-size:40px;height:50px}
+.flash-controls button{background:#333;color:white;min-width: 60px;}
 </style>
 </head>
 
 <body>
 
-<!-- ===== トップ ===== -->
 <div id="top" class="screen">
-  <h1>🏓 卓球回転判断トレーニング</h1>
-  <button onclick="startGame()">スタート</button>
+  <h1>🏓 卓球トレーニング</h1>
+  <button onclick="startSpin()">回転判断トレーニング</button>
+  <button onclick="startFlash()">瞬間判断トレーニング</button>
 </div>
 
-<!-- ===== ゲーム ===== -->
-<div id="gameScreen" class="screen hidden">
-  <div id="game">
-    <div id="info">
-      Lv <span id="level">1</span>
-      🔥 <span id="combo">0</span>
-      ⭐ <span id="score">1.0</span>
-      ⏱ <span id="time">60</span>
+<div id="spinScreen" class="screen hidden">
+  <div id="spinGame">
+    <div id="spinInfo">
+      Lv <span id="spinLvDisp">1</span>
+      🔥 <span id="spinComboDisp">0</span>
+      ⏱ <span id="spinTimeDisp">60</span>
     </div>
-    <div id="result"></div>
+    <div id="resultText"></div>
     <div id="center"><div id="arrow">↑</div></div>
   </div>
 </div>
 
-<!-- ===== 終了 ===== -->
+<div id="flashScreen" class="screen hidden">
+  <div id="flashGame">
+    ⏱ <span id="flashTimeDisp">60</span><br>
+    Lv <span id="flashLvDisp">1</span> 🔥 <span id="flashComboDisp">0</span><br>
+    <div id="flashArrow" class="arrow-display"></div>
+    <div id="feedback"></div>
+    <div class="flash-controls">
+      <button onclick="answerFlash('left')">←</button>
+      <button onclick="answerFlash('up')">↑</button>
+      <button onclick="answerFlash('right')">→</button>
+    </div>
+  </div>
+</div>
+
 <div id="end" class="screen hidden">
   <h2>🎉 終了</h2>
   <p id="finalScore"></p>
-  <button onclick="location.reload()">トップへ戻る</button>
+  <button onclick="backTop()">トップへ戻る</button>
 </div>
 
 <script>
-/* ===== 設定 ===== */
+/* ===== 共通・定数 ===== */
 const bgColors=['#111','#0b1a2a','#102a1c','#2a1c10','#2a1010','#1a102a','#2a002a'];
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* ================= 回転判断 ================= */
 const anglesDeg=[-90,-45,0,45,90,135,180,225];
 const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
 const radius=120, center=160;
 const showTimes=[1200,1000,850,700,600,500,400];
 
-const arrow=document.getElementById('arrow');
-const result=document.getElementById('result');
-const levelEl=document.getElementById('level');
-const comboEl=document.getElementById('combo');
-const scoreEl=document.getElementById('score');
-const timeEl=document.getElementById('time');
+let rackets=[],correctIdx=0,answered=false;
+let spinLvl=1,spinCombo=0,spinTimeLeft=60,spinTimer=null,nextTaskTimer=null;
 
-let rackets=[];
-let correctIndex=0;
-let answered=false;
-let questionTimer=null;
-let gameTimer=null;
-
-let level=1;
-let combo=0;
-let timeLeft=60;
-let gameEnd=false;
-
-/* ===== ラケット生成 ===== */
+// ボタンの動的生成
+const gameContainer = document.getElementById('spinGame');
 anglesRad.forEach((a,i)=>{
   const b=document.createElement('button');
   b.className='spin-btn';
   b.style.left=center+radius*Math.cos(a)-25+'px';
   b.style.top =center+radius*Math.sin(a)-25+'px';
-  b.onclick=()=>answer(i);
+  b.onclick=()=>judgeSpin(i===correctIdx);
   rackets.push(b);
-  document.getElementById('game').appendChild(b);
+  gameContainer.appendChild(b);
 });
 
-/* ===== 開始 ===== */
-function startGame(){
-  document.getElementById('top').classList.add('hidden');
-  document.getElementById('gameScreen').classList.remove('hidden');
-
-  level=1;combo=0;timeLeft=60;gameEnd=false;
-  updateUI();updateBg();
-
-  gameTimer=setInterval(()=>{
-    timeLeft--;
-    timeEl.textContent=timeLeft;
-    if(timeLeft<=0) endGame();
+function startSpin(){
+  show('spinScreen');
+  spinLvl=1;spinCombo=0;spinTimeLeft=60;
+  updateSpinUI();updateBg(spinLvl);
+  if(spinTimer) clearInterval(spinTimer);
+  spinTimer=setInterval(()=>{
+    spinTimeLeft--;
+    document.getElementById('spinTimeDisp').textContent=spinTimeLeft;
+    if(spinTimeLeft<=0) endSpin();
   },1000);
-
-  nextQuestion();
+  nextSpin();
 }
 
-/* ===== 出題 ===== */
-function nextQuestion(){
-  if(gameEnd) return;
-
-  clearTimeout(questionTimer);
+function nextSpin(){
+  if(spinTimeLeft<=0) return;
   answered=false;
-  result.textContent='';
+  document.getElementById('resultText').textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
-
-  correctIndex=Math.floor(Math.random()*8);
-  arrow.style.transform=`rotate(${anglesDeg[correctIndex]+90}deg)`;
-  rackets[correctIndex].classList.add('active');
-
-  questionTimer=setTimeout(()=>{
-    if(!answered) judge(false);
-  }, showTimes[level-1]);
+  
+  correctIdx=Math.floor(Math.random()*8);
+  document.getElementById('arrow').style.transform=`rotate(${anglesDeg[correctIdx]+90}deg)`;
+  rackets[correctIdx].classList.add('active');
+  
+  if(nextTaskTimer) clearTimeout(nextTaskTimer);
+  nextTaskTimer=setTimeout(()=>judgeSpin(false), showTimes[spinLvl-1]);
 }
 
-/* ===== 回答 ===== */
-function answer(i){
-  if(answered||gameEnd) return;
-  judge(i===correctIndex);
-}
-
-/* ===== 判定 ===== */
-function judge(isCorrect){
-  if(answered||gameEnd) return;
+function judgeSpin(ok){
+  if(answered || spinTimeLeft<=0) return;
   answered=true;
-  clearTimeout(questionTimer);
+  clearTimeout(nextTaskTimer);
   rackets.forEach(r=>r.classList.remove('active'));
 
-  if(isCorrect){
-    result.textContent='〇';
-    result.style.color='#0f9';
-    combo++;
-    if(combo>=5 && level<7){
-      level++;
-      combo=0;
-      updateBg();
-    }
+  const resEl = document.getElementById('resultText');
+  if(ok){
+    resEl.textContent='〇';resEl.style.color='#0f9';spinCombo++;
+    if(spinCombo>=5 && spinLvl<7){spinLvl++;spinCombo=0;updateBg(spinLvl);}
   }else{
-    result.textContent='✖';
-    result.style.color='#f00';
-    combo=0;
+    resEl.textContent='✖';resEl.style.color='#f00';spinCombo=0;
   }
-
-  updateUI();
-  setTimeout(nextQuestion,600);
+  updateSpinUI();
+  setTimeout(nextSpin, 500);
 }
 
-/* ===== 表示 ===== */
-function updateUI(){
-  levelEl.textContent=level;
-  comboEl.textContent=combo;
-  scoreEl.textContent=`${level}.${combo}`;
-}
-function updateBg(){
-  document.body.style.background=bgColors[level-1];
+function updateSpinUI(){
+  document.getElementById('spinLvDisp').textContent=spinLvl;
+  document.getElementById('spinComboDisp').textContent=spinCombo;
 }
 
-/* ===== 終了 ===== */
-function endGame(){
-  gameEnd=true;
-  clearInterval(gameTimer);
-  clearTimeout(questionTimer);
-  document.getElementById('gameScreen').classList.add('hidden');
-  document.getElementById('end').classList.remove('hidden');
-  document.getElementById('finalScore').textContent=
-    `スコア：${scoreEl.textContent}`;
+function endSpin(){
+  clearInterval(spinTimer);
+  clearTimeout(nextTaskTimer);
+  document.getElementById('finalScore').textContent=`回転判断 レベル：${spinLvl} コンボ：${spinCombo}`;
+  show('end');
+}
+
+/* ================= 瞬間判断 ================= */
+const arrows=['left','up','right'];
+const icons={left:'←',up:'↑',right:'→'};
+let flashLvl=1,flashCombo=0,flashTimeLeft=60,flashTimer=null,currentDir='';
+
+function startFlash(){
+  show('flashScreen');
+  flashLvl=1;flashCombo=0;flashTimeLeft=60;
+  updateFlashUI();updateBg(flashLvl);
+  if(flashTimer) clearInterval(flashTimer);
+  flashTimer=setInterval(()=>{
+    flashTimeLeft--;
+    document.getElementById('flashTimeDisp').textContent=flashTimeLeft;
+    if(flashTimeLeft<=0) endFlash();
+  },1000);
+  nextFlash();
+}
+
+function nextFlash(){
+  if(flashTimeLeft<=0) return;
+  currentDir=arrows[Math.floor(Math.random()*3)];
+  document.getElementById('flashArrow').textContent=icons[currentDir];
+}
+
+function answerFlash(a){
+  if(flashTimeLeft<=0) return;
+  const fb = document.getElementById('feedback');
+  if(a===currentDir){
+    fb.textContent='〇';fb.style.color='#0f9';flashCombo++;
+    if(flashCombo>=10 && flashLvl<7){flashLvl++;flashCombo=0;updateBg(flashLvl);}
+  }else{
+    fb.textContent='✖';fb.style.color='#f00';flashCombo=0;
+  }
+  updateFlashUI();
+  setTimeout(()=>{fb.textContent='';nextFlash();},200);
+}
+
+function updateFlashUI(){
+  document.getElementById('flashLvDisp').textContent=flashLvl;
+  document.getElementById('flashComboDisp').textContent=flashCombo;
+}
+
+function endFlash(){
+  clearInterval(flashTimer);
+  document.getElementById('finalScore').textContent=`瞬間判断 レベル：${flashLvl} コンボ：${flashCombo}`;
+  show('end');
+}
+
+/* ===== 共通処理 ===== */
+function updateBg(lvl){document.body.style.background=bgColors[lvl-1]}
+function backTop(){
+  document.body.style.background='#111';
+  show('top');
 }
 </script>
 
