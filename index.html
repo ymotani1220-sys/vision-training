@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球トレーニングセット</title>
+<title>卓球トレーニング セット</title>
 
 <style>
 body{
@@ -18,7 +18,7 @@ body{
   transition:background 0.4s;
 }
 
-/* ===== 共通 ===== */
+/* 共通 */
 .screen{
   position:absolute;
   width:100%;
@@ -28,52 +28,39 @@ body{
   justify-content:center;
   align-items:center;
 }
-.hidden{ display:none; }
+.hidden{display:none;}
+button{font-size:20px;padding:14px 26px;margin:10px}
 
-button{
-  font-size:20px;
-  padding:14px 28px;
-  border:none;
-  border-radius:14px;
-  cursor:pointer;
-}
-
-/* ===== トップ ===== */
-#top h1{ font-size:24px; margin-bottom:30px; }
-.menu button{ width:260px; margin:10px 0; }
-
-/* ===== 瞬間判断 ===== */
-.arrow{ font-size:100px; margin:30px 0; }
-#feedback{ font-size:40px; height:50px; }
-.overlay{ background:rgba(0,0,0,0.6); min-height:100vh; width:100%; text-align:center; }
-#instantRanking{ text-align:left; max-width:320px; margin:auto; }
+/* トップ */
+#top h1{font-size:22px}
 
 /* ===== 回転判断 ===== */
-#game{ position:relative; width:320px; height:320px; }
-#info{ position:absolute; top:-90px; width:100%; text-align:center; font-size:18px; }
-#result{ position:absolute; top:-35px; left:50%; transform:translateX(-50%); font-size:34px; height:40px; }
+#spinGame{position:relative;width:320px;height:320px}
+#spinInfo{position:absolute;top:-90px;width:100%;text-align:center}
+#result{position:absolute;top:-35px;left:50%;transform:translateX(-50%);
+  font-size:34px;font-weight:bold;height:40px;text-shadow:0 0 6px #000}
 #center{
-  position:absolute; top:50%; left:50%;
-  width:80px; height:80px;
+  position:absolute;top:50%;left:50%;
+  width:80px;height:80px;
   transform:translate(-50%,-50%);
-  border-radius:50%; background:#fff;
-  display:flex; justify-content:center; align-items:center;
+  border-radius:50%;background:#fff;
+  display:flex;justify-content:center;align-items:center
 }
-#arrowSpin{ font-size:46px; font-weight:900; color:#f33; }
-
+#arrow{font-size:46px;font-weight:900;color:#f33;text-shadow:0 0 8px #000}
 .spin-btn{
-  position:absolute;
-  width:50px; height:50px;
-  border-radius:50%; background:#c00; border:none;
+  position:absolute;width:50px;height:50px;
+  border-radius:50%;background:#c00;border:none
 }
 .spin-btn::after{
-  content:'';
-  position:absolute;
-  bottom:-18px; left:50%;
-  width:12px; height:22px;
-  background:#caa; transform:translateX(-50%);
+  content:'';position:absolute;bottom:-18px;left:50%;
+  width:12px;height:22px;background:#caa;
+  transform:translateX(-50%);
+  border-radius:0 0 6px 6px
 }
-.spin-btn.active{ background:#0f9; }
+.spin-btn.active{background:#0f9}
+
+/* ===== 終了 ===== */
+#end h2{margin-bottom:10px}
 </style>
 </head>
 
@@ -82,183 +69,156 @@ button{
 <!-- ===== トップ ===== -->
 <div id="top" class="screen">
   <h1>🏓 卓球トレーニング</h1>
-  <div class="menu">
-    <button onclick="startInstant()">瞬間判断トレーニング</button>
-    <button onclick="startSpin()">回転判断トレーニング</button>
-  </div>
-</div>
-
-<!-- ===== 瞬間判断 ===== -->
-<div id="instantScreen" class="screen hidden">
-  <div id="instantStart" class="overlay">
-    <h1>🏓 瞬間判断トレーニング</h1>
-    <input id="playerName" placeholder="名前">
-    <br><br>
-    <button onclick="instantStartGame()">スタート</button>
-  </div>
-
-  <div id="instantGame" class="hidden">
-    👤 <span id="name"></span><br>
-    ⏱ <span id="time">60</span> 秒　
-    🎯 Lv <span id="levelI">1</span>　
-    🔥 <span id="comboI">0</span><br>
-    ⭐ <span id="scoreI">1.0</span>
-
-    <div id="arrow" class="arrow"></div>
-    <div id="feedback"></div>
-
-    <button onclick="answerI('left')">←</button>
-    <button onclick="answerI('up')">↑</button>
-    <button onclick="answerI('right')">→</button>
-  </div>
-
-  <div id="instantResult" class="hidden overlay">
-    <h2>🎉 結果</h2>
-    <p id="finalScoreI"></p>
-    <h3>🏆 ランキング</h3>
-    <ol id="instantRanking"></ol>
-    <button onclick="backTop()">トップへ戻る</button>
-  </div>
+  <button onclick="startSpin()">回転判断</button>
 </div>
 
 <!-- ===== 回転判断 ===== -->
 <div id="spinScreen" class="screen hidden">
-  <div id="game">
-    <div id="info">
+  <div id="spinGame">
+
+    <div id="spinInfo">
       Lv <span id="level">1</span>
       🔥 <span id="combo">0</span>
       ⭐ <span id="score">1.0</span>
       ⏱ <span id="timeSpin">60</span>
     </div>
+
     <div id="result"></div>
-    <div id="center"><div id="arrowSpin">↑</div></div>
+
+    <div id="center">
+      <div id="arrow">↑</div>
+    </div>
   </div>
 </div>
 
-<div id="spinResult" class="screen hidden">
+<!-- ===== 終了 ===== -->
+<div id="end" class="screen hidden">
   <h2>🎉 結果</h2>
   <p id="finalScore"></p>
-  <ol id="spinRanking"></ol>
   <button onclick="backTop()">トップへ戻る</button>
 </div>
 
 <script>
-/* ===== 画面制御 ===== */
-function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-function backTop(){
-  document.body.style.background='#111';
-  show('top');
-}
+/* ===== 背景色 ===== */
+const bgColors=[
+  '#111','#0b1a2a','#102a1c',
+  '#2a1c10','#2a1010','#1a102a','#2a002a'
+];
 
-/* ===== 瞬間判断ロジック（そのまま） ===== */
-let levelI=1, comboI=0, maxCombo=0, timeI=60, timerI=null, qTimer=null;
-let current='', answeredI=false, player='';
-const arrows=['left','up','right'];
-const icons={left:'←',up:'↑',right:'→'};
-const showTimes=[1500,1300,1100,900,750,600,450];
-
-function startInstant(){ show('instantScreen'); }
-function instantStartGame(){
-  player=document.getElementById('playerName').value||'ゲスト';
-  document.getElementById('name').textContent=player;
-  document.getElementById('instantStart').classList.add('hidden');
-  document.getElementById('instantGame').classList.remove('hidden');
-
-  timerI=setInterval(()=>{
-    timeI--; document.getElementById('time').textContent=timeI;
-    if(timeI<=0) endInstant();
-  },1000);
-  nextI();
-}
-function nextI(){
-  answeredI=false;
-  current=arrows[Math.floor(Math.random()*3)];
-  document.getElementById('arrow').textContent=icons[current];
-  qTimer=setTimeout(()=>judgeI(false), showTimes[levelI-1]);
-}
-function answerI(c){ if(!answeredI) judgeI(c===current); }
-function judgeI(ok){
-  answeredI=true; clearTimeout(qTimer);
-  document.getElementById('arrow').textContent='';
-  if(ok){ comboI++; maxCombo=Math.max(maxCombo,comboI); if(comboI>=5&&levelI<7){levelI++;comboI=0;} }
-  else comboI=0;
-  document.getElementById('levelI').textContent=levelI;
-  document.getElementById('comboI').textContent=comboI;
-  document.getElementById('scoreI').textContent=`${levelI}.${maxCombo}`;
-  setTimeout(nextI,400);
-}
-function endInstant(){
-  clearInterval(timerI);
-  const s=document.getElementById('scoreI').textContent;
-  const list=JSON.parse(localStorage.getItem('instantRanking')||'[]');
-  list.push({name:player,score:s});
-  list.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('instantRanking',JSON.stringify(list.slice(0,20)));
-  const ol=document.getElementById('instantRanking');
-  ol.innerHTML='';
-  list.forEach((r,i)=>{ const li=document.createElement('li'); li.textContent=`${i+1}. ${r.name} (${r.score})`; ol.appendChild(li); });
-  document.getElementById('finalScoreI').textContent=`スコア：${s}`;
-  document.getElementById('instantGame').classList.add('hidden');
-  document.getElementById('instantResult').classList.remove('hidden');
-}
-
-/* ===== 回転判断（前回完成版・省略なしで接続済） ===== */
+/* ===== 回転判断 ===== */
 const anglesDeg=[-90,-45,0,45,90,135,180,225];
 const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
 const radius=120, center=160;
-let rackets=[], correct=0, answered=false, timer=null;
-let level=1, combo=0, timeLeft=60, gameTimer=null, gameEnd=false;
+const showTimes=[1200,1000,850,700,600,500,400];
 
-function startSpin(){
-  show('spinScreen');
-  level=1; combo=0; timeLeft=60; gameEnd=false;
-  document.getElementById('timeSpin').textContent=timeLeft;
-  gameTimer=setInterval(()=>{ timeLeft--; document.getElementById('timeSpin').textContent=timeLeft; if(timeLeft<=0) endSpin(); },1000);
-  nextSpin();
-}
+const arrow=document.getElementById('arrow');
+const resultEl=document.getElementById('result');
+const levelEl=document.getElementById('level');
+const comboEl=document.getElementById('combo');
+const scoreEl=document.getElementById('score');
 
+let rackets=[],correct=0,answered=false,timer=null;
+let level=1,combo=0;
+let timeLeft=60,gameTimer=null,gameEnd=false;
+
+/* ラケット生成 */
 anglesRad.forEach((a,i)=>{
   const b=document.createElement('button');
   b.className='spin-btn';
   b.style.left=center+radius*Math.cos(a)-25+'px';
-  b.style.top=center+radius*Math.sin(a)-25+'px';
-  b.onclick=()=>judgeSpin(i===correct);
+  b.style.top =center+radius*Math.sin(a)-25+'px';
+  b.onclick=()=>answerSpin(i);
   rackets.push(b);
-  document.getElementById('game').appendChild(b);
+  document.getElementById('spinGame').appendChild(b);
 });
 
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function startSpin(){
+  show('spinScreen');
+  level=1; combo=0; timeLeft=60; gameEnd=false;
+  updateUI(); updateBackground();
+  document.getElementById('timeSpin').textContent=timeLeft;
+
+  gameTimer=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timeSpin').textContent=timeLeft;
+    if(timeLeft<=0) endSpin();
+  },1000);
+
+  nextSpin();
+}
+
 function nextSpin(){
+  if(gameEnd) return;
+  clearTimeout(timer);
   answered=false;
+  resultEl.textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
+
   correct=Math.floor(Math.random()*8);
-  document.getElementById('arrowSpin').style.transform=`rotate(${anglesDeg[correct]+90}deg)`;
+  arrow.style.transform=`rotate(${anglesDeg[correct]+90}deg)`;
   rackets[correct].classList.add('active');
-  timer=setTimeout(()=>judgeSpin(false),700);
+
+  timer=setTimeout(()=>judgeSpin(false), showTimes[level-1]);
 }
+
+function answerSpin(i){
+  if(answered||gameEnd) return;
+  judgeSpin(i===correct);
+}
+
 function judgeSpin(ok){
-  if(answered) return;
-  answered=true; clearTimeout(timer);
-  if(ok){ combo++; if(combo>=5&&level<7){level++;combo=0;} }
-  else combo=0;
-  document.getElementById('level').textContent=level;
-  document.getElementById('combo').textContent=combo;
-  document.getElementById('score').textContent=`${level}.${combo}`;
-  setTimeout(nextSpin,500);
+  answered=true;
+  clearTimeout(timer);
+  rackets.forEach(r=>r.classList.remove('active'));
+
+  if(ok){
+    resultEl.textContent='〇';
+    resultEl.style.color='#0f9';
+    combo++;
+    if(combo>=5 && level<7){
+      level++; combo=0;
+      updateBackground();
+    }
+  }else{
+    resultEl.textContent='✖';
+    resultEl.style.color='#f00';
+    combo=0;
+  }
+
+  updateUI();
+  setTimeout(()=>{
+    resultEl.textContent='';
+    nextSpin();
+  },600);
 }
+
+function updateUI(){
+  levelEl.textContent=level;
+  comboEl.textContent=combo;
+  scoreEl.textContent=`${level}.${combo}`;
+}
+
+function updateBackground(){
+  document.body.style.background=bgColors[level-1];
+}
+
 function endSpin(){
+  gameEnd=true;
   clearInterval(gameTimer);
-  const s=document.getElementById('score').textContent;
-  const list=JSON.parse(localStorage.getItem('spinRanking')||'[]');
-  list.push(s); list.sort((a,b)=>b-a);
-  localStorage.setItem('spinRanking',JSON.stringify(list.slice(0,20)));
-  const ol=document.getElementById('spinRanking');
-  ol.innerHTML='';
-  list.forEach((r,i)=>{ const li=document.createElement('li'); li.textContent=`${i+1}. ${r}`; ol.appendChild(li); });
-  document.getElementById('finalScore').textContent=`スコア：${s}`;
-  show('spinResult');
+  clearTimeout(timer);
+  show('end');
+  document.getElementById('finalScore').textContent=
+    `スコア：${scoreEl.textContent}`;
+}
+
+function backTop(){
+  document.body.style.background='#111';
+  show('top');
 }
 </script>
 
