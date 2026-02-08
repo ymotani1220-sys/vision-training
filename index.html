@@ -17,14 +17,12 @@ body{
   height:100vh;
   overflow:hidden;
 }
-
 #game{
   position:relative;
   width:100%;
   max-width:420px;
   height:100vh;
 }
-
 #info{
   position:absolute;
   top:10px;
@@ -33,22 +31,18 @@ body{
   font-size:22px;
   z-index:10;
 }
-
 #judge{
   font-size:42px;
   height:48px;
-  margin-bottom:4px;
 }
-
 #ball{
   position:absolute;
   width:48px;
   height:48px;
   border-radius:50%;
-  background:white;
+  background:#fff;
   box-shadow:0 0 12px rgba(255,255,255,0.8);
 }
-
 #floor{
   position:absolute;
   bottom:80px;
@@ -67,26 +61,26 @@ body{
     Lv <span id="lv">1</span>　
     ⭐ <span id="score">1.0</span>
   </div>
-
   <div id="ball"></div>
   <div id="floor"></div>
 </div>
 
 <script>
-/* ===== レベル別背景 ===== */
+/* ===== 背景 ===== */
 const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35'];
 function updateBg(lv){
-  document.body.style.background = bgColors[Math.min(lv-1, bgColors.length-1)];
+  document.body.style.background =
+    bgColors[Math.min(lv-1,bgColors.length-1)];
 }
 
 /* ===== DOM ===== */
-const ball = document.getElementById('ball');
-const floor = document.getElementById('floor');
-const judgeEl = document.getElementById('judge');
-const lvEl = document.getElementById('lv');
-const scoreEl = document.getElementById('score');
+const ball=document.getElementById('ball');
+const floor=document.getElementById('floor');
+const judgeEl=document.getElementById('judge');
+const lvEl=document.getElementById('lv');
+const scoreEl=document.getElementById('score');
 
-/* ===== ゲーム状態 ===== */
+/* ===== 状態 ===== */
 let level=1, combo=0;
 let x=0,y=0,vx=0,vy=0;
 let gravity=0.5;
@@ -94,51 +88,62 @@ let running=false;
 let bounced=0;
 let touched=false;
 
-/* ===== 定数 ===== */
 const ballR=24;
 const restitution=0.85;
 
-/* ===== トップスピン強度（伸び） ===== */
+/* ===== 伸び ===== */
 function spinStrength(lv){
-  if(lv < 5) return 0;
-  return 0.06 * (lv - 4); // Lv5〜強くなる
+  if(lv<5) return 0;
+  return 0.07*(lv-4);
 }
 
-/* ===== 初期化 ===== */
+/* ===== 打ち出し ===== */
 function serve(){
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const floorY = floor.offsetTop;
+  const floorY=floor.offsetTop;
 
   bounced=0;
   touched=false;
   judgeEl.textContent='';
 
-  // 打ち出し位置（Lvが上がると低く）
-  y = floorY - 120 + Math.max(0, (level-4)*20);
-  x = 40;
+  /* 打ち出し高さ調整 */
+  let baseHeight=140;
+  if(level>=5){
+    baseHeight += (level-4)*15; // ←今回の修正
+  } else {
+    baseHeight -= level*10;
+  }
 
-  // 横スピード
-  vx = 3 + level * 0.8;
+  y=floorY-baseHeight;
+  x=40;
 
-  // 打ち出し角（Lvが上がると下向き）
-  vy = -6 + level * 0.6;
+  /* 横スピード（Lv7,8強化） */
+  vx=3+level*0.9;
+  if(level>=7){
+    vx+= (level-6)*1.6;
+  }
 
-  // 重力
-  gravity = level < 3 ? 0.25 : 0.6;
+  /* 縦初速（下向き過多を防ぐ） */
+  vy=-5+level*0.4;
+
+  gravity = level<3 ? 0.25 : 0.6;
 
   running=true;
 }
 
-/* ===== 判定 ===== */
+/* ===== タッチ ===== */
 ball.addEventListener('pointerdown',()=>{
   if(bounced===1 && !touched){
     touched=true;
     running=false;
     judgeEl.textContent='〇';
     judgeEl.style.color='#0f9';
+
     combo++;
-    if(combo>=5){ level++; combo=0; updateBg(level); }
+    if(combo>=5){
+      level++;
+      combo=0;
+      updateBg(level);
+    }
     updateScore();
     setTimeout(serve,600);
   }
@@ -150,24 +155,22 @@ function updateScore(){
   scoreEl.textContent=`${level}.${combo}`;
 }
 
-/* ===== メインループ ===== */
+/* ===== ループ ===== */
 function loop(){
   if(running){
-    vy += gravity;
-    x += vx;
-    y += vy;
+    vy+=gravity;
+    x+=vx;
+    y+=vy;
 
-    const floorY = floor.offsetTop;
+    const floorY=floor.offsetTop;
 
-    // バウンド判定（表面接地）
-    if(y + ballR >= floorY && vy > 0){
-      y = floorY - ballR;
-      vy = -vy * restitution;
+    if(y+ballR>=floorY && vy>0){
+      y=floorY-ballR;
+      vy=-vy*restitution;
       bounced++;
 
-      // ===== 伸び（トップスピン摩擦）=====
-      const spin = spinStrength(level);
-      vx += vx * spin;
+      /* 伸び */
+      vx+=vx*spinStrength(level);
 
       if(bounced>=2){
         running=false;
@@ -179,10 +182,7 @@ function loop(){
       }
     }
 
-    // 画面外
-    if(x > window.innerWidth+50) running=false;
-
-    ball.style.transform = `translate(${x-ballR}px, ${y-ballR}px)`;
+    ball.style.transform=`translate(${x-ballR}px,${y-ballR}px)`;
   }
   requestAnimationFrame(loop);
 }
