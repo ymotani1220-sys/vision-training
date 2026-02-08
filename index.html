@@ -1,72 +1,3 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>卓球バウンド判断ゲーム</title>
-<style>
-  body {
-    margin: 0;
-    background: #eef;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-family: sans-serif;
-  }
-
-  #game {
-    position: relative;
-    width: 320px;
-    height: 480px;
-    background: #fff;
-    border: 2px solid #333;
-    overflow: hidden;
-  }
-
-  #ball {
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: orange;
-  }
-
-  #floor {
-    position: absolute;
-    bottom: 40px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: #666;
-  }
-
-  #info {
-    position: absolute;
-    top: 10px;
-    width: 100%;
-    text-align: center;
-    font-size: 16px;
-  }
-
-  #result {
-    position: absolute;
-    top: 40px;
-    width: 100%;
-    text-align: center;
-    font-size: 32px;
-    font-weight: bold;
-  }
-</style>
-</head>
-<body>
-
-<div id="game">
-  <div id="info">Lv 1</div>
-  <div id="result"></div>
-  <div id="ball"></div>
-  <div id="floor"></div>
-</div>
-
 <script>
 const ball = document.getElementById("ball");
 const result = document.getElementById("result");
@@ -74,47 +5,61 @@ const info = document.getElementById("info");
 
 const floorY = 400;
 
-// レベル設定
 const levels = [
   { gravity: 0.25, speed: 1.6 },
   { gravity: 0.30, speed: 1.9 },
   { gravity: 0.38, speed: 2.3 },
-  { gravity: 0.46, speed: 2.7 },
-  { gravity: 0.55, speed: 3.2 }
+  { gravity: 0.46, speed: 2.7 }
 ];
 
 let level = 0;
 let success = 0;
 
 let x, y, vx, vy;
-let lastBounceTime = 0;
+let bounceCount = 0;
+let canTouch = false;
+let touched = false;
+let ballActive = true;
 
 function resetBall() {
   x = 40;
   y = 80;
   vx = levels[level].speed;
   vy = 0;
+  bounceCount = 0;
+  canTouch = false;
+  touched = false;
+  ballActive = true;
+  ball.style.display = "block";
 }
 
 resetBall();
 
 function update() {
+  if (!ballActive) {
+    requestAnimationFrame(update);
+    return;
+  }
+
   const g = levels[level].gravity;
 
   x += vx;
   y += vy;
   vy += g;
 
-  // バウンド
+  // バウンド判定
   if (y >= floorY) {
     y = floorY;
     vy = -vy * 0.85;
-    lastBounceTime = performance.now();
-  }
+    bounceCount++;
 
-  // 画面外に出たらリセット
-  if (x > 360) {
-    resetBall();
+    if (bounceCount === 1) {
+      canTouch = true;
+    }
+
+    if (bounceCount === 2 && !touched) {
+      showResult(false);
+    }
   }
 
   ball.style.left = x + "px";
@@ -124,14 +69,20 @@ function update() {
 }
 
 document.getElementById("game").addEventListener("click", () => {
-  const diff = performance.now() - lastBounceTime;
+  if (!canTouch || touched || !ballActive) return;
 
-  if (diff < 220) {
+  touched = true;
+  ballActive = false;
+  ball.style.display = "none"; // ← 打ったので消す
+  showResult(true);
+});
+
+function showResult(ok) {
+  if (ok) {
     result.textContent = "〇";
     result.style.color = "green";
     success++;
 
-    // 3回成功でレベルアップ
     if (success >= 3 && level < levels.length - 1) {
       level++;
       success = 0;
@@ -143,13 +94,12 @@ document.getElementById("game").addEventListener("click", () => {
   }
 
   info.textContent = `Lv ${level + 1}`;
-  resetBall();
 
-  setTimeout(() => result.textContent = "", 500);
-});
+  setTimeout(() => {
+    result.textContent = "";
+    resetBall();
+  }, 700);
+}
 
 update();
 </script>
-
-</body>
-</html>
