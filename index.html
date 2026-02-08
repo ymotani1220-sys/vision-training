@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球トレーニング - スコア進化ver</title>
+<title>卓球トレーニング - 刹那ver</title>
 
 <style>
 body{
@@ -98,7 +98,6 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 
 <div id="end" class="screen hidden">
   <h2 style="font-size:32px;">トレーニング終了！</h2>
-  <p style="font-size:18px; color:#ccc;">今回の記録</p>
   <p id="finalScore" class="score-highlight" style="font-size:48px; margin:10px 0;"></p>
   <button onclick="backTop()">トップへ戻る</button>
 </div>
@@ -106,6 +105,9 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 <script>
 /* ===== 共通設定 ===== */
 const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35','#4a148c','#004d40'];
+// 共通の表示・制限時間設定（Lv1〜Lv8+）
+const speedSettings=[1500, 1200, 1000, 850, 700, 550, 450, 350];
+
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
@@ -118,10 +120,8 @@ function updateBg(lvl){
 const anglesDeg=[-90,-45,0,45,90,135,180,225];
 const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
 const radius=125, center=160;
-// Lv1〜Lv8以降の速度設定
-const spinShowTimes=[1500, 1200, 1000, 850, 700, 550, 450, 350];
 
-let rackets=[], correctIdx=0, answered=false;
+let rackets=[], correctIdx=0, answeredSpin=false;
 let spinLvl=1, spinCombo=0, spinTimeLeft=60, spinTimer=null, spinNextTimer=null;
 
 const spinArea = document.getElementById('spinGame');
@@ -150,7 +150,7 @@ function startSpin(){
 
 function nextSpin(){
   if(spinTimeLeft<=0) return;
-  answered=false;
+  answeredSpin=false;
   document.getElementById('resultText').textContent='';
   rackets.forEach(r=>r.classList.remove('active'));
   
@@ -159,13 +159,13 @@ function nextSpin(){
   rackets[correctIdx].classList.add('active');
   
   if(spinNextTimer) clearTimeout(spinNextTimer);
-  const currentSpeed = spinShowTimes[Math.min(spinLvl-1, spinShowTimes.length-1)];
+  const currentSpeed = speedSettings[Math.min(spinLvl-1, speedSettings.length-1)];
   spinNextTimer=setTimeout(()=>judgeSpin(false), currentSpeed);
 }
 
 function judgeSpin(ok){
-  if(answered || spinTimeLeft<=0) return;
-  answered=true;
+  if(answeredSpin || spinTimeLeft<=0) return;
+  answeredSpin=true;
   clearTimeout(spinNextTimer);
   rackets.forEach(r=>r.classList.remove('active'));
 
@@ -194,9 +194,8 @@ function endSpin(){
 /* ================= 瞬間判断 (Flash) ================= */
 const arrows=['left','up','right'];
 const icons={left:'←',up:'↑',right:'→'};
-const flashWaitTimes=[450, 400, 350, 300, 250, 200, 150, 100];
 
-let flashLvl=1, flashCombo=0, flashTimeLeft=60, flashTimer=null, currentDir='';
+let flashLvl=1, flashCombo=0, flashTimeLeft=60, flashTimer=null, flashNextTimer=null, currentDir='', answeredFlash=false;
 
 function startFlash(){
   show('flashScreen');
@@ -213,22 +212,41 @@ function startFlash(){
 
 function nextFlash(){
   if(flashTimeLeft<=0) return;
+  answeredFlash=false;
+  document.getElementById('feedback').textContent='';
+  
   currentDir=arrows[Math.floor(Math.random()*3)];
   document.getElementById('flashArrow').textContent=icons[currentDir];
+  
+  if(flashNextTimer) clearTimeout(flashNextTimer);
+  const currentSpeed = speedSettings[Math.min(flashLvl-1, speedSettings.length-1)];
+  // 制限時間内に答えられなければミス（judgeFlashをfalseで呼ぶ）
+  flashNextTimer=setTimeout(()=>judgeFlash(null), currentSpeed);
 }
 
 function answerFlash(a){
-  if(flashTimeLeft<=0) return;
+  if(answeredFlash || flashTimeLeft<=0) return;
+  judgeFlash(a === currentDir);
+}
+
+function judgeFlash(ok){
+  if(answeredFlash || flashTimeLeft<=0) return;
+  answeredFlash=true;
+  clearTimeout(flashNextTimer);
+  
+  // 矢印を消す（刹那の仕様）
+  document.getElementById('flashArrow').textContent='';
+  
   const fb = document.getElementById('feedback');
-  if(a===currentDir){
+  if(ok === true){
     fb.textContent='〇'; fb.style.color='#0f9'; flashCombo++;
     if(flashCombo >= 5){ flashLvl++; flashCombo=0; updateBg(flashLvl); }
   } else {
     fb.textContent='✖'; fb.style.color='#f00'; flashCombo=0;
   }
   updateFlashScore();
-  const currentWait = flashWaitTimes[Math.min(flashLvl-1, flashWaitTimes.length-1)];
-  setTimeout(()=>{fb.textContent=''; nextFlash();}, currentWait);
+  // 次の問題までのインターバル（少しゆとりを持たせる）
+  setTimeout(nextFlash, 600);
 }
 
 function updateFlashScore(){
@@ -237,6 +255,7 @@ function updateFlashScore(){
 
 function endFlash(){
   clearInterval(flashTimer);
+  clearTimeout(flashNextTimer);
   document.getElementById('finalScore').textContent = `${flashLvl}.${flashCombo}`;
   show('end');
 }
