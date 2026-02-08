@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球トレーニング - 刹那ver</title>
+<title>卓球トレーニング - 完全調和ver</title>
 
 <style>
 body{
@@ -35,22 +35,46 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 .info-panel { font-size: 20px; margin-bottom: 10px; text-align: center; line-height: 1.5; }
 .score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
 
-/* ===== 回転判断 ===== */
-#spinGame{position:relative;width:320px;height:320px}
+/* ===== 回転判断 (座標補正済み) ===== */
+#spinGame{
+  position:relative;
+  width:320px;
+  height:320px;
+  /* コンテナ自体を円形に見立てて中心を意識しやすく */
+}
 #resultText{position:absolute;top:-40px;left:50%;transform:translateX(-50%);
   font-size:40px;font-weight:bold;height:45px}
 #center{
-  position:absolute;top:50%;left:50%;
-  width:80px;height:80px;
-  transform:translate(-50%,-50%);
-  border-radius:50%;background:#fff;
-  display:flex;justify-content:center;align-items:center;
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:80px;
+  height:80px;
+  /* translateで自分自身のサイズの半分戻し、完全に中央へ */
+  transform:translate(-50%, -50%);
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
   box-shadow: 0 0 15px rgba(255,255,255,0.5);
+  z-index: 10; /* ボールを前面に */
 }
 #arrow{font-size:50px;font-weight:900;color:#f33;transition: transform 0.15s ease-out;}
+
 .spin-btn{
-  position:absolute;width:56px;height:56px;
-  border-radius:50%;background:#444;border:3px solid #fff;
+  position:absolute;
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:#444;
+  border:3px solid #fff;
+  padding: 0;
+  margin: 0;
+  /* 中心を揃えるための基準をJSで計算 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .spin-btn.active{background:#0f9;box-shadow: 0 0 20px #0f9;}
 
@@ -105,7 +129,6 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 <script>
 /* ===== 共通設定 ===== */
 const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35','#4a148c','#004d40'];
-// 共通の表示・制限時間設定（Lv1〜Lv8+）
 const speedSettings=[1500, 1200, 1000, 850, 700, 550, 450, 350];
 
 function show(id){
@@ -119,7 +142,8 @@ function updateBg(lvl){
 /* ================= 回転判断 (Spin) ================= */
 const anglesDeg=[-90,-45,0,45,90,135,180,225];
 const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
-const radius=125, center=160;
+const radius=120; // 半径
+const gameSize=320; // コンテナの幅と高さ
 
 let rackets=[], correctIdx=0, answeredSpin=false;
 let spinLvl=1, spinCombo=0, spinTimeLeft=60, spinTimer=null, spinNextTimer=null;
@@ -128,8 +152,15 @@ const spinArea = document.getElementById('spinGame');
 anglesRad.forEach((a,i)=>{
   const b=document.createElement('button');
   b.className='spin-btn';
-  b.style.left=center+radius*Math.cos(a)-28+'px';
-  b.style.top =center+radius*Math.sin(a)-28+'px';
+  
+  // 中心座標(160, 160)から、ボタンの大きさ(56/2 = 28)を引いて中心を合わせる
+  const centerX = gameSize / 2;
+  const centerY = gameSize / 2;
+  const btnRadius = 28; 
+
+  b.style.left = (centerX + radius * Math.cos(a) - btnRadius) + 'px';
+  b.style.top  = (centerY + radius * Math.sin(a) - btnRadius) + 'px';
+  
   b.onclick=()=>judgeSpin(i===correctIdx);
   rackets.push(b);
   spinArea.appendChild(b);
@@ -220,7 +251,6 @@ function nextFlash(){
   
   if(flashNextTimer) clearTimeout(flashNextTimer);
   const currentSpeed = speedSettings[Math.min(flashLvl-1, speedSettings.length-1)];
-  // 制限時間内に答えられなければミス（judgeFlashをfalseで呼ぶ）
   flashNextTimer=setTimeout(()=>judgeFlash(null), currentSpeed);
 }
 
@@ -234,7 +264,6 @@ function judgeFlash(ok){
   answeredFlash=true;
   clearTimeout(flashNextTimer);
   
-  // 矢印を消す（刹那の仕様）
   document.getElementById('flashArrow').textContent='';
   
   const fb = document.getElementById('feedback');
@@ -245,7 +274,6 @@ function judgeFlash(ok){
     fb.textContent='✖'; fb.style.color='#f00'; flashCombo=0;
   }
   updateFlashScore();
-  // 次の問題までのインターバル（少しゆとりを持たせる）
   setTimeout(nextFlash, 600);
 }
 
