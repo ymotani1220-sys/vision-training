@@ -18,7 +18,6 @@ body{
   transition:background 0.5s;
   touch-action: manipulation;
 }
-
 .screen{
   position:absolute;
   width:100%;
@@ -29,26 +28,8 @@ body{
 }
 .hidden{display:none}
 
-#top h1{margin-top:80px}
-button{
-  font-size:22px;
-  padding:16px 30px;
-  margin:12px;
-  border:none;
-  border-radius:12px;
-  font-weight:bold;
-}
-
-#info{
-  margin-top:20px;
-  font-size:20px;
-  text-align:center;
-}
-#result{
-  font-size:42px;
-  height:50px;
-  margin:10px;
-}
+#info{margin-top:20px;font-size:20px}
+#result{font-size:42px;height:50px;margin:8px}
 
 #gameArea{
   position:relative;
@@ -60,10 +41,10 @@ button{
 
 #floor{
   position:absolute;
-  bottom:80px;
+  bottom:120px;
   width:100%;
   height:4px;
-  background:#555;
+  background:#666;
 }
 
 #ball{
@@ -71,8 +52,16 @@ button{
   width:48px;
   height:48px;
   border-radius:50%;
-  background:white;
+  background:#fff;
   box-shadow:0 0 15px rgba(255,255,255,0.6);
+}
+button{
+  font-size:22px;
+  padding:16px 30px;
+  margin:12px;
+  border:none;
+  border-radius:12px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -80,7 +69,7 @@ button{
 <body>
 
 <div id="top" class="screen">
-  <h1>🏓 打点判断トレーニング</h1>
+  <h1 style="margin-top:80px">🏓 打点判断トレーニング</h1>
   <button onclick="startGame()">スタート</button>
 </div>
 
@@ -103,15 +92,15 @@ button{
 </div>
 
 <script>
-/* ===== レベル設定 ===== */
+/* ===== レベル設定（減衰なし） ===== */
 const levels=[
-  {g:0.20, vx:1.4, startY:0.20},
-  {g:0.26, vx:1.7, startY:0.20},
-  {g:0.35, vx:2.0, startY:0.20}, // 現実重力
-  {g:0.35, vx:2.4, startY:0.18},
-  {g:0.35, vx:2.8, startY:0.16},
-  {g:0.35, vx:3.2, startY:0.14},
-  {g:0.35, vx:3.6, startY:0.12}
+  {g:0.22, vx:1.2, vy:-5.0, startY:0.25},
+  {g:0.26, vx:1.6, vy:-4.6, startY:0.30},
+  {g:0.35, vx:2.2, vy:-4.0, startY:0.35}, // 現実
+  {g:0.35, vx:2.8, vy:-3.2, startY:0.42},
+  {g:0.35, vx:3.4, vy:-2.6, startY:0.48},
+  {g:0.35, vx:4.0, vy:-2.2, startY:0.52},
+  {g:0.35, vx:4.6, vy:-1.8, startY:0.56}
 ];
 
 const bgColors=[
@@ -119,30 +108,26 @@ const bgColors=[
   '#352a1a','#351a1a','#261a35','#351a35'
 ];
 
-/* ===== 状態 ===== */
+const RESTITUTION = 0.65; // ★全レベル共通★
+
 let level=1, combo=0;
 let time=60, timer=null;
-let ball, area, floorY;
-let x,y,vx,vy;
-let bounced=0;
-let active=false;
+let x,y,vx,vy,bounced=0,active=false;
+let area, floorY;
 
-/* ===== 画面制御 ===== */
+/* UI */
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
-
 function updateBg(){
-  document.body.style.background=
-    bgColors[Math.min(level-1,bgColors.length-1)];
+  document.body.style.background=bgColors[Math.min(level-1,6)];
 }
-
 function updateScore(){
   document.getElementById('score').textContent=`${level}.${combo}`;
 }
 
-/* ===== 開始 ===== */
+/* 開始 */
 function startGame(){
   show('game');
   level=1; combo=0; time=60;
@@ -158,39 +143,38 @@ function startGame(){
   spawnBall();
 }
 
-/* ===== ボール生成 ===== */
+/* ボール生成 */
 function spawnBall(){
-  ball=document.getElementById('ball');
-  area=document.getElementById('gameArea');
-  floorY=area.clientHeight-80;
-
   const lv=levels[Math.min(level-1,levels.length-1)];
+  area=document.getElementById('gameArea');
+  floorY=document.getElementById('floor').offsetTop;
 
   x=20;
   y=area.clientHeight*lv.startY;
   vx=lv.vx;
-  vy=0;
+  vy=lv.vy;
   bounced=0;
   active=true;
 
+  const ball=document.getElementById('ball');
   ball.style.left=x+'px';
   ball.style.top=y+'px';
 
   requestAnimationFrame(updateBall);
 }
 
-/* ===== 物理 ===== */
+/* 物理 */
 function updateBall(){
   if(!active) return;
-
   const lv=levels[Math.min(level-1,levels.length-1)];
+
   vy+=lv.g;
   x+=vx;
   y+=vy;
 
   if(y>=floorY){
     y=floorY;
-    vy*=-0.6;
+    vy*=-RESTITUTION;
     bounced++;
     if(bounced>=2){
       fail();
@@ -198,18 +182,16 @@ function updateBall(){
     }
   }
 
+  const ball=document.getElementById('ball');
   ball.style.left=x+'px';
   ball.style.top=y+'px';
 
-  if(x<area.clientWidth) requestAnimationFrame(updateBall);
+  if(x<area.clientWidth+60) requestAnimationFrame(updateBall);
 }
 
-/* ===== 判定 ===== */
-ball?.addEventListener('pointerdown',()=>{});
-
-document.getElementById('gameArea').addEventListener('pointerdown',e=>{
-  if(!active) return;
-  if(bounced===1){
+/* 判定 */
+document.getElementById('gameArea').addEventListener('pointerdown',()=>{
+  if(active && bounced===1){
     success();
   }
 });
@@ -219,14 +201,9 @@ function success(){
   document.getElementById('result').textContent='〇';
   document.getElementById('result').style.color='#0f9';
   combo++;
-
-  if(combo>=5){
-    level++;
-    combo=0;
-    updateBg();
-  }
+  if(combo>=5){ level++; combo=0; updateBg(); }
   updateScore();
-  setTimeout(()=>{document.getElementById('result').textContent=''; spawnBall();},600);
+  setTimeout(reset,600);
 }
 
 function fail(){
@@ -235,10 +212,15 @@ function fail(){
   document.getElementById('result').style.color='#f00';
   combo=0;
   updateScore();
-  setTimeout(()=>{document.getElementById('result').textContent=''; spawnBall();},600);
+  setTimeout(reset,600);
 }
 
-/* ===== 終了 ===== */
+function reset(){
+  document.getElementById('result').textContent='';
+  spawnBall();
+}
+
+/* 終了 */
 function endGame(){
   clearInterval(timer);
   show('end');
