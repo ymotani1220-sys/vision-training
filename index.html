@@ -8,43 +8,36 @@
 <style>
 body{
   margin:0;
-  font-family:sans-serif;
   background:#111;
   color:#fff;
+  font-family:sans-serif;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
-  transition:background 0.5s;
-  touch-action: manipulation;
-}
-.screen{
-  position:absolute;
-  width:100%;
-  height:100%;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-.hidden{display:none}
-
-#info{margin-top:20px;font-size:20px}
-#result{font-size:42px;height:50px;margin:8px}
-
-#gameArea{
-  position:relative;
-  width:100%;
-  max-width:420px;
-  flex:1;
   overflow:hidden;
 }
 
-#floor{
-  position:absolute;
-  bottom:120px;
+#game{
+  position:relative;
   width:100%;
-  height:4px;
-  background:#666;
+  max-width:420px;
+  height:100vh;
+}
+
+#info{
+  position:absolute;
+  top:10px;
+  width:100%;
+  text-align:center;
+  font-size:22px;
+  z-index:10;
+}
+
+#judge{
+  font-size:42px;
+  height:48px;
+  margin-bottom:4px;
 }
 
 #ball{
@@ -52,200 +45,153 @@ body{
   width:48px;
   height:48px;
   border-radius:50%;
-  background:#fff;
-  box-shadow:0 0 15px rgba(255,255,255,0.6);
+  background:white;
+  box-shadow:0 0 12px rgba(255,255,255,0.8);
 }
 
-button{
-  font-size:22px;
-  padding:16px 30px;
-  margin:12px;
-  border:none;
-  border-radius:12px;
-  font-weight:bold;
+#floor{
+  position:absolute;
+  bottom:80px;
+  width:100%;
+  height:4px;
+  background:#888;
 }
 </style>
 </head>
 
 <body>
 
-<div id="top" class="screen">
-  <h1 style="margin-top:80px">🏓 打点判断トレーニング</h1>
-  <button onclick="startGame()">スタート</button>
-</div>
-
-<div id="game" class="screen hidden">
+<div id="game">
   <div id="info">
-    ⏱ <span id="time">60</span>　
+    <div id="judge"></div>
+    Lv <span id="lv">1</span>　
     ⭐ <span id="score">1.0</span>
   </div>
-  <div id="result"></div>
-  <div id="gameArea">
-    <div id="floor"></div>
-    <div id="ball"></div>
-  </div>
-</div>
 
-<div id="end" class="screen hidden">
-  <h2>終了！</h2>
-  <p id="finalScore" style="font-size:48px"></p>
-  <button onclick="location.reload()">トップへ</button>
+  <div id="ball"></div>
+  <div id="floor"></div>
 </div>
 
 <script>
-/* ===== レベル別パラメータ ===== */
-function levelParams(lv){
-  const g = lv < 3 ? 0.25 : 0.35;
-
-  // 横速度：体感で明確に上がる
-  const vx = 1.2 + Math.pow(lv, 1.45) * 1.0;
-
-  // ★ 打ち出し角度をレベルで変化させる
-  // 低Lv：上向き / 高Lv：下向き
-  const vy = -6 + lv * 0.9;  
-
-  // 初期高さ（高Lvほど低く）
-  const startY = Math.min(0.3 + lv * 0.04, 0.7);
-
-  return {g, vx, vy, startY};
+/* ===== レベル別背景 ===== */
+const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35'];
+function updateBg(lv){
+  document.body.style.background = bgColors[Math.min(lv-1, bgColors.length-1)];
 }
 
-const bgColors=[
-  '#111','#1a2635','#1a3526',
-  '#352a1a','#351a1a','#261a35','#351a35','#4a148c'
-];
+/* ===== DOM ===== */
+const ball = document.getElementById('ball');
+const floor = document.getElementById('floor');
+const judgeEl = document.getElementById('judge');
+const lvEl = document.getElementById('lv');
+const scoreEl = document.getElementById('score');
 
-const RESTITUTION = 0.65;
-const BALL_R = 24;
-
+/* ===== ゲーム状態 ===== */
 let level=1, combo=0;
-let time=60, timer=null;
-let x,y,vx,vy,bounced=0,active=false;
-let area, floorY;
+let x=0,y=0,vx=0,vy=0;
+let gravity=0.5;
+let running=false;
+let bounced=0;
+let touched=false;
 
-/* UI */
-function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-function updateBg(){
-  document.body.style.background=bgColors[Math.min(level-1,bgColors.length-1)];
-}
-function updateScore(){
-  document.getElementById('score').textContent=`${level}.${combo}`;
-}
+/* ===== 定数 ===== */
+const ballR=24;
+const restitution=0.85;
 
-/* 開始 */
-function startGame(){
-  show('game');
-  level=1; combo=0; time=60;
-  updateScore(); updateBg();
-  document.getElementById('time').textContent=time;
-
-  timer=setInterval(()=>{
-    time--;
-    document.getElementById('time').textContent=time;
-    if(time<=0) endGame();
-  },1000);
-
-  spawnBall();
+/* ===== トップスピン強度（伸び） ===== */
+function spinStrength(lv){
+  if(lv < 5) return 0;
+  return 0.06 * (lv - 4); // Lv5〜強くなる
 }
 
-/* ボール生成 */
-function spawnBall(){
-  const lv = levelParams(level);
-  area = document.getElementById('gameArea');
+/* ===== 初期化 ===== */
+function serve(){
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const floorY = floor.offsetTop;
 
-  const areaRect = area.getBoundingClientRect();
-  const floorRect = document.getElementById('floor').getBoundingClientRect();
+  bounced=0;
+  touched=false;
+  judgeEl.textContent='';
 
-  // ★ 床のY（ボール中心基準）
-  floorY = floorRect.top - areaRect.top;
+  // 打ち出し位置（Lvが上がると低く）
+  y = floorY - 120 + Math.max(0, (level-4)*20);
+  x = 40;
 
-  x = 20;
-  y = area.clientHeight * lv.startY;
-  vx = lv.vx;
-  vy = lv.vy;
-  bounced = 0;
-  active = true;
+  // 横スピード
+  vx = 3 + level * 0.8;
 
-  const ball = document.getElementById('ball');
-  ball.style.left = x + 'px';
-  ball.style.top  = y + 'px';
+  // 打ち出し角（Lvが上がると下向き）
+  vy = -6 + level * 0.6;
 
-  requestAnimationFrame(updateBall);
+  // 重力
+  gravity = level < 3 ? 0.25 : 0.6;
+
+  running=true;
 }
 
-/* 物理更新 */
-function updateBall(){
-  if(!active) return;
-  const lv = levelParams(level);
-
-  vy += lv.g;
-  x += vx;
-  y += vy;
-
-  // ★ 表面接地判定
-  if(y + BALL_R >= floorY){
-    y = floorY - BALL_R;
-    vy *= -RESTITUTION;
-    bounced++;
-    if(bounced >= 2){
-      fail();
-      return;
-    }
-  }
-
-  const ball = document.getElementById('ball');
-  ball.style.left = x + 'px';
-  ball.style.top  = y + 'px';
-
-  if(x < area.clientWidth + 60){
-    requestAnimationFrame(updateBall);
-  }
-}
-
-/* 判定 */
-document.getElementById('gameArea').addEventListener('pointerdown',()=>{
-  if(active && bounced === 1){
-    success();
+/* ===== 判定 ===== */
+ball.addEventListener('pointerdown',()=>{
+  if(bounced===1 && !touched){
+    touched=true;
+    running=false;
+    judgeEl.textContent='〇';
+    judgeEl.style.color='#0f9';
+    combo++;
+    if(combo>=5){ level++; combo=0; updateBg(level); }
+    updateScore();
+    setTimeout(serve,600);
   }
 });
 
-function success(){
-  active=false;
-  document.getElementById('result').textContent='〇';
-  document.getElementById('result').style.color='#0f9';
-  combo++;
-  if(combo >= 5){
-    level++;
-    combo = 0;
-    updateBg();
+/* ===== スコア ===== */
+function updateScore(){
+  lvEl.textContent=level;
+  scoreEl.textContent=`${level}.${combo}`;
+}
+
+/* ===== メインループ ===== */
+function loop(){
+  if(running){
+    vy += gravity;
+    x += vx;
+    y += vy;
+
+    const floorY = floor.offsetTop;
+
+    // バウンド判定（表面接地）
+    if(y + ballR >= floorY && vy > 0){
+      y = floorY - ballR;
+      vy = -vy * restitution;
+      bounced++;
+
+      // ===== 伸び（トップスピン摩擦）=====
+      const spin = spinStrength(level);
+      vx += vx * spin;
+
+      if(bounced>=2){
+        running=false;
+        judgeEl.textContent='✖';
+        judgeEl.style.color='#f33';
+        combo=0;
+        updateScore();
+        setTimeout(serve,600);
+      }
+    }
+
+    // 画面外
+    if(x > window.innerWidth+50) running=false;
+
+    ball.style.transform = `translate(${x-ballR}px, ${y-ballR}px)`;
   }
-  updateScore();
-  setTimeout(reset,600);
+  requestAnimationFrame(loop);
 }
 
-function fail(){
-  active=false;
-  document.getElementById('result').textContent='✖';
-  document.getElementById('result').style.color='#f00';
-  combo=0;
-  updateScore();
-  setTimeout(reset,600);
-}
-
-function reset(){
-  document.getElementById('result').textContent='';
-  spawnBall();
-}
-
-/* 終了 */
-function endGame(){
-  clearInterval(timer);
-  show('end');
-  document.getElementById('finalScore').textContent=`${level}.${combo}`;
-}
+/* ===== 開始 ===== */
+updateBg(1);
+updateScore();
+serve();
+loop();
 </script>
 
 </body>
