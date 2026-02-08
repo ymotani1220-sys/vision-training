@@ -12,18 +12,42 @@ body{
   background:#111;
   color:#fff;
   font-family:sans-serif;
-  text-align:center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
-/* ===== ゲーム画面（縦持ち） ===== */
+/* ===== 共通スクリーン ===== */
+.screen{
+  width:100%;
+  max-width:420px;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* ===== 上部情報 ===== */
+#info{
+  margin-top:10px;
+  font-size:20px;
+}
+#result{
+  height:60px;
+  font-size:56px;
+  font-weight:bold;
+  margin-top:6px;
+}
+
+/* ===== ゲームエリア ===== */
 #game{
   position:relative;
   width:100%;
-  max-width:420px;
-  height:80vh;
-  margin:0 auto;
-  background:#f5f5f5;
-  border-radius:12px;
+  height:70vh;
+  background:#000;
+  border-radius:14px;
+  margin-top:10px;
   overflow:hidden;
 }
 
@@ -33,7 +57,7 @@ body{
   bottom:0;
   width:100%;
   height:6px;
-  background:#333;
+  background:#444;
 }
 
 /* ボール（直径2倍） */
@@ -45,38 +69,27 @@ body{
   background:orange;
   touch-action:none;
 }
-
-/* 結果 */
-#result{
-  height:80px;
-  font-size:72px;
-  font-weight:bold;
-  margin-top:10px;
-}
-
-/* 情報 */
-#info{
-  font-size:20px;
-  margin-bottom:8px;
-}
 </style>
 </head>
 
 <body>
 
-<h2>🏓 打点判断トレーニング</h2>
+<div class="screen">
 
-<div id="info">Lv 1</div>
+  <h2 style="margin:8px 0;">🏓 打点判断トレーニング</h2>
 
-<div id="game">
-  <div id="ball"></div>
-  <div id="floor"></div>
+  <div id="info">Lv 1</div>
+  <div id="result"></div>
+
+  <div id="game">
+    <div id="ball"></div>
+    <div id="floor"></div>
+  </div>
+
 </div>
 
-<div id="result"></div>
-
 <script>
-/* ===== レベル設定（やさしめ） ===== */
+/* ===== レベル設定 ===== */
 const levels = [
   { gravity:0.22, speed:1.4 },
   { gravity:0.26, speed:1.7 },
@@ -100,11 +113,12 @@ let active = true;
 
 const BALL_SIZE = 44;
 
+/* ===== 初期化 ===== */
 function resetBall(){
   const h = game.clientHeight;
 
   x = 20;
-  y = h * 0.2;
+  y = h * 0.25;
   vx = levels[level].speed;
   vy = 0;
 
@@ -116,7 +130,7 @@ function resetBall(){
   ball.style.display = "block";
 }
 
-/* ===== 物理処理 ===== */
+/* ===== 物理更新 ===== */
 function update(){
   if(!active){
     requestAnimationFrame(update);
@@ -136,11 +150,11 @@ function update(){
     bounceCount++;
 
     if(bounceCount === 1){
-      canTouch = true;        // 1バウンド後
+      canTouch = true;
     }
 
     if(bounceCount === 2){
-      ball.style.display = "none"; // 2バウンドで消失
+      ball.style.display = "none";
       if(!touched) showResult(false);
     }
   }
@@ -151,7 +165,7 @@ function update(){
   requestAnimationFrame(update);
 }
 
-/* ===== ボールのみタッチ判定 ===== */
+/* ===== ボールタッチ判定 ===== */
 ball.addEventListener("pointerdown", ()=>{
   if(!canTouch || touched || !active) return;
 
@@ -161,7 +175,7 @@ ball.addEventListener("pointerdown", ()=>{
   showResult(true);
 });
 
-/* ===== 判定 ===== */
+/* ===== 判定表示 ===== */
 function showResult(ok){
   active = false;
 
