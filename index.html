@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>卓球バウンド判断ゲーム</title>
+<title>打点判断トレーニング</title>
 
 <style>
 body{
@@ -36,11 +36,11 @@ body{
   background:#333;
 }
 
-/* ボール */
+/* ボール（直径2倍） */
 #ball{
   position:absolute;
-  width:22px;
-  height:22px;
+  width:44px;
+  height:44px;
   border-radius:50%;
   background:orange;
   touch-action:none;
@@ -64,7 +64,7 @@ body{
 
 <body>
 
-<h2>🏓 バウンド判断トレーニング</h2>
+<h2>🏓 打点判断トレーニング</h2>
 
 <div id="info">Lv 1</div>
 
@@ -98,8 +98,9 @@ let canTouch = false;
 let touched = false;
 let active = true;
 
+const BALL_SIZE = 44;
+
 function resetBall(){
-  const w = game.clientWidth;
   const h = game.clientHeight;
 
   x = 20;
@@ -123,7 +124,7 @@ function update(){
   }
 
   const g = levels[level].gravity;
-  const floorY = game.clientHeight - 22;
+  const floorY = game.clientHeight - BALL_SIZE;
 
   x += vx;
   y += vy;
@@ -135,11 +136,11 @@ function update(){
     bounceCount++;
 
     if(bounceCount === 1){
-      canTouch = true;        // ★ 1バウンド後
+      canTouch = true;        // 1バウンド後
     }
 
     if(bounceCount === 2){
-      ball.style.display = "none"; // ★ 2バウンドで消す
+      ball.style.display = "none"; // 2バウンドで消失
       if(!touched) showResult(false);
     }
   }
@@ -150,7 +151,7 @@ function update(){
   requestAnimationFrame(update);
 }
 
-/* ===== ボールだけタッチ判定 ===== */
+/* ===== ボールのみタッチ判定 ===== */
 ball.addEventListener("pointerdown", ()=>{
   if(!canTouch || touched || !active) return;
 
