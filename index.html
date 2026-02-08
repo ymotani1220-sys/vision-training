@@ -93,13 +93,21 @@ button{
 </div>
 
 <script>
-/* ===== レベル設定（高速化強化版） ===== */
+/* ===== レベル別パラメータ ===== */
 function levelParams(lv){
   const g = lv < 3 ? 0.25 : 0.35;
-  const vx = 1.2 + Math.pow(lv, 1.35) * 0.9; // ★強化ポイント
-  const vy = -5.2 + lv * 0.35;
-  const startY = Math.min(0.25 + lv * 0.035, 0.65);
-  return {g,vx,vy,startY};
+
+  // 横速度：体感で明確に上がる
+  const vx = 1.2 + Math.pow(lv, 1.45) * 1.0;
+
+  // ★ 打ち出し角度をレベルで変化させる
+  // 低Lv：上向き / 高Lv：下向き
+  const vy = -6 + lv * 0.9;  
+
+  // 初期高さ（高Lvほど低く）
+  const startY = Math.min(0.3 + lv * 0.04, 0.7);
+
+  return {g, vx, vy, startY};
 }
 
 const bgColors=[
@@ -108,12 +116,12 @@ const bgColors=[
 ];
 
 const RESTITUTION = 0.65;
+const BALL_R = 24;
 
 let level=1, combo=0;
 let time=60, timer=null;
 let x,y,vx,vy,bounced=0,active=false;
 let area, floorY;
-const BALL_R = 24;
 
 /* UI */
 function show(id){
@@ -151,7 +159,8 @@ function spawnBall(){
   const areaRect = area.getBoundingClientRect();
   const floorRect = document.getElementById('floor').getBoundingClientRect();
 
-  floorY = floorRect.top - areaRect.top - BALL_R;
+  // ★ 床のY（ボール中心基準）
+  floorY = floorRect.top - areaRect.top;
 
   x = 20;
   y = area.clientHeight * lv.startY;
@@ -167,7 +176,7 @@ function spawnBall(){
   requestAnimationFrame(updateBall);
 }
 
-/* 物理 */
+/* 物理更新 */
 function updateBall(){
   if(!active) return;
   const lv = levelParams(level);
@@ -176,8 +185,9 @@ function updateBall(){
   x += vx;
   y += vy;
 
-  if(y >= floorY){
-    y = floorY;
+  // ★ 表面接地判定
+  if(y + BALL_R >= floorY){
+    y = floorY - BALL_R;
     vy *= -RESTITUTION;
     bounced++;
     if(bounced >= 2){
