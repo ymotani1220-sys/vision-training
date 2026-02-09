@@ -41,7 +41,7 @@ body{
   height:48px;
   border-radius:50%;
   background:#fff;
-  box-shadow:0 0 12px rgba(255,255,255,0.8);
+  box-shadow:0 0 14px rgba(255,255,255,0.9);
 }
 #floor{
   position:absolute;
@@ -83,19 +83,14 @@ const scoreEl=document.getElementById('score');
 /* ===== 状態 ===== */
 let level=1, combo=0;
 let x=0,y=0,vx=0,vy=0;
-let gravity=0.5;
+let gravity=0.6;
+let magnus=0;
 let running=false;
 let bounced=0;
 let touched=false;
 
 const ballR=24;
 const restitution=0.85;
-
-/* ===== 伸び ===== */
-function spinStrength(lv){
-  if(lv<5) return 0;
-  return 0.07*(lv-4);
-}
 
 /* ===== 打ち出し ===== */
 function serve(){
@@ -105,27 +100,39 @@ function serve(){
   touched=false;
   judgeEl.textContent='';
 
-  /* 打ち出し高さ調整 */
-  let baseHeight=140;
-  if(level>=5){
-    baseHeight += (level-4)*15; // ←今回の修正
-  } else {
-    baseHeight -= level*10;
-  }
-
-  y=floorY-baseHeight;
+  /* 高さは完全固定 */
+  y=floorY-140;
   x=40;
 
-  /* 横スピード（Lv7,8強化） */
-  vx=3+level*0.9;
-  if(level>=7){
-    vx+= (level-6)*1.6;
+  /* 横スピード */
+  vx = 3 + level*0.9;
+  if(level>=6){
+    vx += (level-5)*2.5;
   }
 
-  /* 縦初速（下向き過多を防ぐ） */
-  vy=-5+level*0.4;
+  /* 縦初速 & マグヌス */
+  if(level<=4){
+    vy = -4 + level*0.5;
+    magnus = 0;
+  }
+  else if(level===5){
+    vy = -1;
+    magnus = 0.015;
+  }
+  else if(level===6){
+    vy = 1;
+    magnus = 0.035;
+  }
+  else if(level===7){
+    vy = 2.5;
+    magnus = 0.055;
+  }
+  else{
+    vy = 4;
+    magnus = 0.075;
+  }
 
-  gravity = level<3 ? 0.25 : 0.6;
+  gravity = level<3 ? 0.3 : 0.6;
 
   running=true;
 }
@@ -158,7 +165,12 @@ function updateScore(){
 /* ===== ループ ===== */
 function loop(){
   if(running){
+    /* 重力 */
     vy+=gravity;
+
+    /* マグヌス（常に下向き） */
+    vy+=magnus;
+
     x+=vx;
     y+=vy;
 
@@ -168,9 +180,6 @@ function loop(){
       y=floorY-ballR;
       vy=-vy*restitution;
       bounced++;
-
-      /* 伸び */
-      vx+=vx*spinStrength(level);
 
       if(bounced>=2){
         running=false;
@@ -196,4 +205,3 @@ loop();
 
 </body>
 </html>
-
