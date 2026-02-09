@@ -35,6 +35,10 @@ body{
   font-size:42px;
   height:48px;
 }
+#timer{
+  font-size:20px;
+  margin-bottom:4px;
+}
 #ball{
   position:absolute;
   width:48px;
@@ -50,6 +54,25 @@ body{
   height:4px;
   background:#888;
 }
+
+/* 終了画面 */
+#result{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:20;
+}
+#result h2{
+  font-size:32px;
+  margin-bottom:16px;
+}
+#finalScore{
+  font-size:26px;
+}
 </style>
 </head>
 
@@ -57,12 +80,19 @@ body{
 
 <div id="game">
   <div id="info">
+    <div id="timer">60</div>
     <div id="judge"></div>
     Lv <span id="lv">1</span>　
     ⭐ <span id="score">1.0</span>
   </div>
+
   <div id="ball"></div>
   <div id="floor"></div>
+
+  <div id="result">
+    <h2>終了</h2>
+    <div id="finalScore"></div>
+  </div>
 </div>
 
 <script>
@@ -77,6 +107,9 @@ const floor=document.getElementById('floor');
 const judgeEl=document.getElementById('judge');
 const lvEl=document.getElementById('lv');
 const scoreEl=document.getElementById('score');
+const timerEl=document.getElementById('timer');
+const resultEl=document.getElementById('result');
+const finalScoreEl=document.getElementById('finalScore');
 
 let level=1, combo=0;
 let x=0,y=0,vx=0,vy=0;
@@ -85,31 +118,49 @@ let magnus=0;
 let running=false;
 let bounced=0;
 let touched=false;
+let gameOver=false;
 
 const ballR=24;
 const restitution=0.85;
 
+/* ===== 60秒タイマー ===== */
+let timeLeft=60;
+const timerId=setInterval(()=>{
+  if(gameOver) return;
+  timeLeft--;
+  timerEl.textContent=timeLeft;
+  if(timeLeft<=0){
+    endGame();
+  }
+},1000);
+
+function endGame(){
+  gameOver=true;
+  running=false;
+  resultEl.style.display='flex';
+  finalScoreEl.textContent=`最終スコア：${level}.${combo}`;
+  clearInterval(timerId);
+}
+
 /* ===== 打ち出し ===== */
 function serve(){
-  const floorY=floor.offsetTop;
+  if(gameOver) return;
 
+  const floorY=floor.offsetTop;
   bounced=0;
   touched=false;
   judgeEl.textContent='';
 
-  y=floorY-140;   // 高さ固定
+  y=floorY-140;
   x=40;
 
-  /* 横スピード */
   if(level<=8){
     vx = 3 + level*0.9;
     if(level>=6) vx += (level-5)*2.5;
   }else{
-    // Lv9は速度固定（Lv8相当）
     vx = 3 + 8*0.9 + (8-5)*2.5;
   }
 
-  /* 縦初速 & マグヌス */
   if(level<=4){
     vy = -4 + level*0.5;
     magnus = 0;
@@ -131,7 +182,6 @@ function serve(){
     magnus = 0.075;
   }
   else{
-    // Lv9：さらに下向きで手前に落とす
     vy = 6;
     magnus = 0.095;
   }
@@ -142,6 +192,8 @@ function serve(){
 
 /* ===== タッチ ===== */
 ball.addEventListener('pointerdown',()=>{
+  if(gameOver) return;
+
   if(bounced===1 && !touched){
     touched=true;
     running=false;
@@ -167,15 +219,13 @@ function updateScore(){
 
 /* ===== ループ ===== */
 function loop(){
-  if(running){
+  if(running && !gameOver){
     vy+=gravity;
     vy+=magnus;
-
     x+=vx;
     y+=vy;
 
     const floorY=floor.offsetTop;
-
     if(y+ballR>=floorY && vy>0){
       y=floorY-ballR;
       vy=-vy*restitution;
