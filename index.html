@@ -66,21 +66,18 @@ body{
 </div>
 
 <script>
-/* ===== 背景 ===== */
-const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35'];
+const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35','#1a1a1a','#000'];
 function updateBg(lv){
   document.body.style.background =
     bgColors[Math.min(lv-1,bgColors.length-1)];
 }
 
-/* ===== DOM ===== */
 const ball=document.getElementById('ball');
 const floor=document.getElementById('floor');
 const judgeEl=document.getElementById('judge');
 const lvEl=document.getElementById('lv');
 const scoreEl=document.getElementById('score');
 
-/* ===== 状態 ===== */
 let level=1, combo=0;
 let x=0,y=0,vx=0,vy=0;
 let gravity=0.6;
@@ -100,14 +97,16 @@ function serve(){
   touched=false;
   judgeEl.textContent='';
 
-  /* 高さは完全固定 */
-  y=floorY-140;
+  y=floorY-140;   // 高さ固定
   x=40;
 
   /* 横スピード */
-  vx = 3 + level*0.9;
-  if(level>=6){
-    vx += (level-5)*2.5;
+  if(level<=8){
+    vx = 3 + level*0.9;
+    if(level>=6) vx += (level-5)*2.5;
+  }else{
+    // Lv9は速度固定（Lv8相当）
+    vx = 3 + 8*0.9 + (8-5)*2.5;
   }
 
   /* 縦初速 & マグヌス */
@@ -127,13 +126,17 @@ function serve(){
     vy = 2.5;
     magnus = 0.055;
   }
-  else{
+  else if(level===8){
     vy = 4;
     magnus = 0.075;
   }
+  else{
+    // Lv9：さらに下向きで手前に落とす
+    vy = 6;
+    magnus = 0.095;
+  }
 
   gravity = level<3 ? 0.3 : 0.6;
-
   running=true;
 }
 
@@ -165,10 +168,7 @@ function updateScore(){
 /* ===== ループ ===== */
 function loop(){
   if(running){
-    /* 重力 */
     vy+=gravity;
-
-    /* マグヌス（常に下向き） */
     vy+=magnus;
 
     x+=vx;
@@ -196,7 +196,6 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
-/* ===== 開始 ===== */
 updateBg(1);
 updateScore();
 serve();
