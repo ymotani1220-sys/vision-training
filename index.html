@@ -34,7 +34,6 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
 /* ===== 共通UI ===== */
 .info-panel { font-size: 20px; margin-bottom: 10px; text-align: center; line-height: 1.5; z-index: 10; }
 .score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
-#feedbackText { font-size: 45px; height: 55px; font-weight: bold; text-align: center; }
 
 /* ===== 1. 回転判断 ===== */
 #spinGame{position:relative;width:320px;height:320px}
@@ -107,7 +106,7 @@ button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius
   <div id="hitGameArea">
     <div id="hitBall"></div>
   </div>
-  <p style="color:#aaa;">ワンバウンドした直後にボールをタッチ！</p>
+  <p style="color:#ffeb3b; font-weight:bold; margin-top:15px;">ボールがバウンドしたらボールにタッチ！</p>
 </div>
 
 <div id="endScreen" class="screen hidden">
@@ -237,7 +236,6 @@ function endFlash(){ clearInterval(gameTimer); clearTimeout(flashNextTimer); sho
 /* ================= 3. 打点判断 (Hit) ================= */
 let hX=0, hY=0, hVX=0, hVY=0, hGrav=0.6, hMag=0, hBounced=0, hRunning=false, hTouched=false;
 const hitBall = document.getElementById('hitBall');
-const gameArea = document.getElementById('hitGameArea');
 
 function startHit(){
   currentLvl=1; currentCombo=0;
@@ -245,7 +243,6 @@ function startHit(){
   show('hitScreen');
   startGlobalTimer('hitTimeDisp', endHit);
   serveHit();
-  requestAnimationFrame(hitLoop);
 }
 
 function serveHit(){
@@ -253,15 +250,20 @@ function serveHit(){
   hBounced=0; hTouched=false; hRunning=true;
   document.getElementById('feedbackHit').textContent='';
   hX=20; hY=150;
+  
+  // 物理設定の更新
   hVX = 3 + currentLvl*0.8 + (currentLvl>5 ? (currentLvl-5)*2 : 0);
   if(currentLvl<=4){ hVY = -4 + currentLvl*0.5; hMag=0; }
   else { hVY = currentLvl-5; hMag = 0.01 + (currentLvl-5)*0.02; }
   hGrav = currentLvl<3 ? 0.3 : 0.6;
+
+  // ループを再開
+  requestAnimationFrame(hitLoop);
 }
 
 hitBall.addEventListener('pointerdown', ()=>{
   if(hBounced===1 && !hTouched && hRunning){
-    hTouched=true; hRunning=false;
+    hTouched=true; hRunning=false; // 一旦止めて判定
     const fb = document.getElementById('feedbackHit');
     fb.textContent='〇'; fb.style.color='#0f9'; currentCombo++;
     if(currentCombo>=5){ currentLvl++; currentCombo=0; updateBg(currentLvl); }
@@ -272,8 +274,11 @@ hitBall.addEventListener('pointerdown', ()=>{
 
 function hitLoop(){
   if(!hRunning || gameTimeLeft<=0) return;
+
   hVY += hGrav + hMag;
   hX += hVX; hY += hVY;
+
+  // バウンド処理
   if(hY + 24 >= 400 && hVY > 0){
     hY = 400 - 24; hVY = -hVY * 0.85; hBounced++;
     if(hBounced>=2){
@@ -282,12 +287,19 @@ function hitLoop(){
       fb.textContent='✖'; fb.style.color='#f33'; currentCombo=0;
       updateHitScore();
       setTimeout(serveHit, 600);
+      return; // ループ終了
     }
   }
-  // 画面端にいったらミス
-  if(hX > 420){ hRunning=false; serveHit(); }
+
+  // 画面端にいったらミスとしてリセット
+  if(hX > 420){
+    hRunning=false;
+    setTimeout(serveHit, 300);
+    return;
+  }
+
   hitBall.style.transform = `translate(${hX-24}px, ${hY-24}px)`;
-  if(hRunning) requestAnimationFrame(hitLoop);
+  requestAnimationFrame(hitLoop);
 }
 
 function updateHitScore(){ document.getElementById('hitScoreDisp').textContent = `${currentLvl}.${currentCombo}`; }
