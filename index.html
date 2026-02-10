@@ -23,46 +23,50 @@ body{
   align-items:center;
 }
 
-/* 上部 */
+/* ===== 上部情報 ===== */
 #topInfo{
   width:100%;
-  height:9vh;
-  min-height:64px;
+  height:8vh;
+  min-height:60px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:0 20px;
+  padding:0 18px;
   box-sizing:border-box;
 }
 #time{ font-size:20px; }
 #score{ font-size:24px; font-weight:bold; }
 
-/* 卓球台 */
+/* ===== 卓球台エリア ===== */
 #tableWrapper{
   width:100%;
-  height:56vh;
+  height:58vh;
   display:flex;
   justify-content:center;
-  align-items:center;
+  align-items:flex-end; /* 下寄せ */
+  padding-top:10px;
 }
-:root{ --court-width:72%; }
+:root{ --court-width:70%; }
 
 #tableArea{
   position:relative;
   width:var(--court-width);
-  height:100%;
+  height:92%;
 }
 
-/* 矢印（発射直後のみ） */
+/* ===== 矢印（エンドライン外） ===== */
 #spinHint{
   position:absolute;
-  font-size:44px;
-  color:red;
+  top:-70px;             /* エンドライン外 */
+  font-size:52px;
+  font-weight:900;
+  color:#ff2a2a;
   display:none;
   pointer-events:none;
+  text-shadow:0 0 8px rgba(255,0,0,0.8);
 }
 
-/* 卓球台 */
+/* ===== 卓球台 ===== */
 #table{
   position:relative;
   width:100%;
@@ -90,7 +94,7 @@ body{
   transform:translateX(-50%);
 }
 
-/* ボール */
+/* ===== ボール ===== */
 #ball{
   position:absolute;
   width:28px;
@@ -100,10 +104,10 @@ body{
   display:none;
 }
 
-/* ボタン */
+/* ===== 判定ボタン ===== */
 #controls{
-  height:35vh;
   width:100%;
+  height:30vh;
   display:flex;
   justify-content:center;
   padding-bottom:env(safe-area-inset-bottom);
@@ -112,12 +116,12 @@ body{
   width:var(--court-width);
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  grid-template-rows:repeat(3,64px);
-  row-gap:10px;
+  grid-template-rows:repeat(3,56px);
+  row-gap:6px;           /* 縦を詰める */
 }
 .spinBtn{
-  width:92px;
-  height:48px;
+  width:90px;
+  height:44px;
   border-radius:50px;
   background:#5de0e6;
   justify-self:center;
@@ -159,43 +163,39 @@ const ball = document.getElementById('ball');
 const hint = document.getElementById('spinHint');
 const table = document.getElementById('table');
 
-/* 相手の発射位置（フォア・ミドル・バック） */
-const launchPositions = [
-  0.25, // フォア
+/* 発射位置（コーナー寄り） */
+const launchRatios = [
+  0.18, // フォア（左コーナー寄り）
   0.50, // ミドル
-  0.75  // バック
+  0.82  // バック（右コーナー寄り）
 ];
 
-/* 回転方向 */
 const spins = ['↙','↓','↘'];
 
 function launchBall(){
-  const tableRect = table.getBoundingClientRect();
+  const rect = table.getBoundingClientRect();
 
-  const xRatio = launchPositions[Math.floor(Math.random()*3)];
+  const xRatio = launchRatios[Math.floor(Math.random()*3)];
   const spin = spins[Math.floor(Math.random()*3)];
 
-  const x = tableRect.width * xRatio;
-  const y = tableRect.height * 0.1;
+  const x = rect.width * xRatio;
+  const y = rect.height * 0.08;
 
-  /* ボール配置 */
+  /* ボール */
   ball.style.left = (x - 14) + 'px';
   ball.style.top = (y - 14) + 'px';
   ball.style.display = 'block';
 
-  /* 矢印：ボールのすぐ後ろ */
+  /* 矢印：完全に外 */
   hint.textContent = spin;
-  hint.style.left = (x - 22) + 'px';
-  hint.style.top = (y - 60) + 'px';
+  hint.style.left = (x - 26) + 'px';
   hint.style.display = 'block';
 
-  /* 一瞬で消す */
   setTimeout(()=>{
     hint.style.display = 'none';
-  }, 400);
+  }, 350);
 }
 
-/* テスト用：2秒ごとに発射 */
 setInterval(launchBall, 2000);
 </script>
 
