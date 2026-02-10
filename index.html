@@ -3,266 +3,237 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>横回転判断トレーニング</title>
+<title>横回転判断ゲーム</title>
 
 <style>
 body{
   margin:0;
-  background:#000;
-  color:#fff;
+  background:#1c1c1c;
   font-family:sans-serif;
-  display:flex;
-  justify-content:center;
-}
-#app{
-  width:100%;
-  max-width:420px;
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+  overflow:hidden;
 }
 
 /* ===== 上部情報 ===== */
-#topInfo{
-  width:100%;
-  height:8vh;
-  min-height:60px;
+#info{
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  padding:0 18px;
-  box-sizing:border-box;
-}
-#time{ font-size:20px; }
-#score{ font-size:24px; font-weight:bold; }
-
-/* ===== 卓球台エリア ===== */
-#tableWrapper{
-  width:100%;
-  height:58vh;
-  display:flex;
-  justify-content:center;
-  align-items:flex-end;
-  padding-top:10px;
-}
-:root{ --court-width:70%; }
-
-#tableArea{
-  position:relative;
-  width:var(--court-width);
-  height:92%;
-}
-
-/* ===== 矢印 ===== */
-#spinHint{
-  position:absolute;
-  top:-70px;
-  font-size:52px;
-  font-weight:900;
-  color:#ff2a2a;
-  display:none;
-  pointer-events:none;
-  text-shadow:0 0 8px rgba(255,0,0,0.8);
+  color:white;
+  padding:8px 16px;
+  font-size:16px;
 }
 
 /* ===== 卓球台 ===== */
 #table{
   position:relative;
-  width:100%;
-  height:100%;
-  background:#0bbf63;
-  border:6px solid #fff;
+  width:78vw;              /* 横幅を詰めて調整 */
+  height:42vh;
+  margin:0 auto;
+  background:#1f7a4d;
+  border:4px solid white;  /* サイド＆エンドライン */
   box-sizing:border-box;
 }
+
+/* センターライン */
+#center-line{
+  position:absolute;
+  left:50%;
+  top:0;
+  width:2px;
+  height:100%;
+  background:white;
+}
+
+/* ネット */
 #net{
   position:absolute;
   top:50%;
   left:0;
   width:100%;
-  height:6px;
-  background:#fff;
-  transform:translateY(-50%);
-}
-#centerLine{
-  position:absolute;
-  top:0;
-  left:50%;
-  width:6px;
-  height:100%;
-  background:#fff;
-  transform:translateX(-50%);
+  height:2px;
+  background:white;
 }
 
 /* ===== ボール ===== */
-#ball{
+.ball{
   position:absolute;
-  width:28px;
-  height:28px;
+  width:14px;
+  height:14px;
+  background:#ff7a00;
   border-radius:50%;
-  background:orange;
-  display:none;
+  z-index:5;
+}
+
+/* ===== 回転矢印 ===== */
+.spin-arrow{
+  position:absolute;
+  font-size:38px;
+  font-weight:bold;
+  color:yellow;
+  z-index:4;
 }
 
 /* ===== 判定ボタン ===== */
-#controls{
+#buttons{
+  position:absolute;
+  bottom:8px;
   width:100%;
-  height:30vh;
   display:flex;
   justify-content:center;
-  padding-bottom:env(safe-area-inset-bottom);
-}
-#buttonGrid{
-  width:var(--court-width);
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  grid-template-rows:repeat(3,56px);
-  row-gap:6px;
-}
-.spinBtn{
-  position:relative;
-  width:90px;
-  height:44px;
-  border-radius:50px;
-  background:#5de0e6;
-  justify-self:center;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-.spinBtn.correct{
-  background:#2ecc71;
-  box-shadow:0 0 12px #2ecc71;
-}
-.spinBtn.wrong{
-  background:#e74c3c;
-  box-shadow:0 0 12px #e74c3c;
+  gap:24px;
 }
 
-/* ラケット角度線 */
-.blade{
-  position:absolute;
-  width:36px;
-  height:4px;
-  background:#003344;
-  border-radius:2px;
+/* コース列 */
+.course{
+  display:flex;
+  flex-direction:column;
+  gap:6px; /* 縦間隔を詰める */
 }
-.blade.left{ transform:rotate(-25deg); }
-.blade.center{ transform:rotate(0deg); }
-.blade.right{ transform:rotate(25deg); }
+
+/* ボタン */
+.btn{
+  width:90px;
+  height:42px;
+  background:#ddd;
+  border-radius:50%;
+  position:relative;
+  border:2px solid #444;
+}
+
+/* ラケット角度ライン */
+.btn::after{
+  content:"";
+  position:absolute;
+  width:70%;
+  height:2px;
+  background:#333;
+  top:50%;
+  left:15%;
+}
+
+/* 左曲がり */
+.left::after{
+  transform:rotate(-25deg);
+}
+
+/* 直進 */
+.straight::after{
+  transform:rotate(0deg);
+}
+
+/* 右曲がり */
+.right::after{
+  transform:rotate(25deg);
+}
+
+/* ヒット演出 */
+.hitFlash{
+  background:rgba(255,240,200,0.3);
+}
 </style>
 </head>
 
 <body>
-<div id="app">
 
-  <div id="topInfo">
-    <div id="time">⏱ 60</div>
-    <div id="score">スコア 1.0</div>
+<div id="info">
+  <div>TIME: 60</div>
+  <div>SCORE: 0</div>
+</div>
+
+<div id="table">
+  <div id="center-line"></div>
+  <div id="net"></div>
+</div>
+
+<!-- 判定ボタン -->
+<div id="buttons">
+  <!-- フォア -->
+  <div class="course">
+    <div class="btn left"></div>
+    <div class="btn straight"></div>
+    <div class="btn right"></div>
   </div>
 
-  <div id="tableWrapper">
-    <div id="tableArea">
-      <div id="spinHint">↘</div>
-      <div id="table">
-        <div id="net"></div>
-        <div id="centerLine"></div>
-        <div id="ball"></div>
-      </div>
-    </div>
+  <!-- ミドル -->
+  <div class="course">
+    <div class="btn left"></div>
+    <div class="btn straight"></div>
+    <div class="btn right"></div>
   </div>
 
-  <div id="controls">
-    <div id="buttonGrid">
-      <!-- フォア -->
-      <div class="spinBtn" data-course="0" data-spin="0"><span class="blade left"></span></div>
-      <div class="spinBtn" data-course="0" data-spin="1"><span class="blade center"></span></div>
-      <div class="spinBtn" data-course="0" data-spin="2"><span class="blade right"></span></div>
-      <!-- ミドル -->
-      <div class="spinBtn" data-course="1" data-spin="0"><span class="blade left"></span></div>
-      <div class="spinBtn" data-course="1" data-spin="1"><span class="blade center"></span></div>
-      <div class="spinBtn" data-course="1" data-spin="2"><span class="blade right"></span></div>
-      <!-- バック -->
-      <div class="spinBtn" data-course="2" data-spin="0"><span class="blade left"></span></div>
-      <div class="spinBtn" data-course="2" data-spin="1"><span class="blade center"></span></div>
-      <div class="spinBtn" data-course="2" data-spin="2"><span class="blade right"></span></div>
-    </div>
+  <!-- バック -->
+  <div class="course">
+    <div class="btn left"></div>
+    <div class="btn straight"></div>
+    <div class="btn right"></div>
   </div>
-
 </div>
 
 <script>
-const ball = document.getElementById('ball');
-const hint = document.getElementById('spinHint');
-const table = document.getElementById('table');
-
-let correctSpin = 0;    // 0:left 1:center 2:right
-let correctCourse = 0; // 0:fore 1:middle 2:back
-let judging = false;
-
-/* 発射位置（コーナー寄り） */
-const launchRatios = [
-  0.18, // フォア
-  0.50, // ミドル
-  0.82  // バック
+/* ===== 定義 ===== */
+const table = document.getElementById("table");
+const tableWidth = table.clientWidth;
+const serveX = [
+  tableWidth * 0.18, // フォア（コーナー寄り）
+  tableWidth * 0.5,  // ミドル
+  tableWidth * 0.82  // バック（コーナー寄り）
 ];
 
-/* 回転表示 */
-const spins = ['↙','↓','↘'];
+let correctCourse = 0;
+let correctSpin = 0;
 
+/* ===== ボール発射 ===== */
 function launchBall(){
-  if(judging) return;
-  judging = true;
-
-  const rect = table.getBoundingClientRect();
-
   correctCourse = Math.floor(Math.random()*3);
   correctSpin = Math.floor(Math.random()*3);
 
-  const xRatio = launchRatios[correctCourse];
-  const spin = spins[correctSpin];
+  const ball = document.createElement("div");
+  ball.className = "ball";
+  table.appendChild(ball);
 
-  const x = rect.width * xRatio;
-  const y = rect.height * 0.08;
+  ball.style.left = serveX[correctCourse] + "px";
+  ball.style.top = "10px";
 
-  ball.style.left = (x - 14) + 'px';
-  ball.style.top = (y - 14) + 'px';
-  ball.style.display = 'block';
+  showArrow(correctCourse, correctSpin);
 
-  hint.textContent = spin;
-  hint.style.left = (x - 26) + 'px';
-  hint.style.display = 'block';
+  ball.animate([
+    { transform:"translate(0,0)" },
+    { transform:`translate(${[-60,0,60][correctSpin]}px, 260px)` }
+  ],{
+    duration:900,
+    easing:"ease-out",
+    fill:"forwards"
+  });
 
-  setTimeout(()=>{ hint.style.display = 'none'; }, 350);
+  setTimeout(()=>ball.remove(),1000);
 }
 
-/* 判定 */
-document.querySelectorAll('.spinBtn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    if(!judging) return;
+/* ===== 回転矢印 ===== */
+function showArrow(course, spin){
+  const arrow = document.createElement("div");
+  arrow.className = "spin-arrow";
+  arrow.textContent = spin === 0 ? "↙" : spin === 1 ? "↓" : "↘";
 
-    const c = Number(btn.dataset.course);
-    const s = Number(btn.dataset.spin);
+  arrow.style.left = serveX[course] - 10 + "px";
+  arrow.style.top = "-46px"; // エンドライン外
 
-    if(c === correctCourse && s === correctSpin){
-      btn.classList.add('correct');
-    }else{
-      btn.classList.add('wrong');
-    }
+  table.appendChild(arrow);
+  setTimeout(()=>arrow.remove(),400);
+}
 
-    judging = false;
-
-    setTimeout(()=>{
-      document.querySelectorAll('.spinBtn').forEach(b=>{
-        b.classList.remove('correct','wrong');
-      });
-      ball.style.display = 'none';
+/* ===== ボタン判定 ===== */
+document.querySelectorAll(".course").forEach((col,c)=>{
+  col.querySelectorAll(".btn").forEach((btn,s)=>{
+    btn.onclick = ()=>{
+      if(c===correctCourse && s===correctSpin){
+        document.body.classList.add("hitFlash");
+        setTimeout(()=>document.body.classList.remove("hitFlash"),200);
+      }
       launchBall();
-    }, 600);
+    };
   });
 });
 
-/* テスト用自動発射 */
+/* 初回 */
 launchBall();
 </script>
 
