@@ -23,15 +23,16 @@ body{
   align-items:center;
 }
 
-/* ===== 上部 ===== */
+/* ===== 上部情報バー ===== */
 #topInfo{
+  width:100%;
   height:9vh;
   min-height:64px;
   display:flex;
-  flex-direction:column;
-  justify-content:center;
+  justify-content:space-between;
   align-items:center;
-  gap:4px;
+  padding:0 20px;
+  box-sizing:border-box;
 }
 #time{ font-size:20px; }
 #score{ font-size:24px; font-weight:bold; }
@@ -45,14 +46,30 @@ body{
   align-items:center;
 }
 
-/* ★ 横幅をさらに詰める */
 :root{
-  --court-width:76%;
+  --court-width:72%;
 }
 
-#table{
+#tableArea{
   position:relative;
   width:var(--court-width);
+  height:100%;
+}
+
+/* 回転方向ヒント（エンドライン後方） */
+#spinHint{
+  position:absolute;
+  top:-56px; /* ← エンドラインより後ろ */
+  left:50%;
+  transform:translateX(-50%);
+  font-size:48px;
+  color:red;
+}
+
+/* 卓球台本体 */
+#table{
+  position:relative;
+  width:100%;
   height:100%;
   background:#0bbf63;
   border:6px solid #fff;
@@ -81,16 +98,6 @@ body{
   transform:translateX(-50%);
 }
 
-/* 回転方向 */
-#spinHint{
-  position:absolute;
-  top:-48px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:44px;
-  color:red;
-}
-
 /* ボール */
 #ball{
   position:absolute;
@@ -98,7 +105,7 @@ body{
   height:28px;
   border-radius:50%;
   background:orange;
-  left:62%;
+  left:60%;
   top:65%;
 }
 
@@ -113,14 +120,14 @@ body{
 }
 
 #buttonGrid{
-  width:var(--court-width); /* ← 卓球台と完全一致 */
+  width:var(--court-width);
   display:grid;
   grid-template-columns:repeat(3, 1fr);
-  grid-template-rows:repeat(3, 64px); /* ★ 縦を圧縮 */
-  row-gap:10px;  /* ★ 行間を詰める */
+  grid-template-rows:repeat(3, 64px);
+  row-gap:10px;
 }
 
-/* ===== 楕円ボタン ===== */
+/* 楕円ボタン */
 .spinBtn{
   width:92px;
   height:48px;
@@ -130,7 +137,7 @@ body{
   position:relative;
 }
 
-/* ラケット角度ライン */
+/* ラケット角度 */
 .spinBtn::after{
   content:'';
   position:absolute;
@@ -161,11 +168,13 @@ body{
   </div>
 
   <div id="tableWrapper">
-    <div id="table">
-      <div id="spinHint">↓</div>
-      <div id="net"></div>
-      <div id="centerLine"></div>
-      <div id="ball"></div>
+    <div id="tableArea">
+      <div id="spinHint">↘</div>
+      <div id="table">
+        <div id="net"></div>
+        <div id="centerLine"></div>
+        <div id="ball"></div>
+      </div>
     </div>
   </div>
 
