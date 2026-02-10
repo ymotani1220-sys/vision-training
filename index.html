@@ -6,7 +6,6 @@
 <title>横回転判断トレーニング</title>
 
 <style>
-/* ===== 全体 ===== */
 body{
   margin:0;
   background:#000;
@@ -24,35 +23,39 @@ body{
   align-items:center;
 }
 
-/* ===== 上部UI ===== */
+/* ===== 上部 ===== */
 #topInfo{
-  height:10vh;
-  min-height:70px;
+  height:9vh;
+  min-height:64px;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  gap:6px;
+  gap:4px;
 }
-#time{ font-size:22px; }
-#score{ font-size:26px; font-weight:bold; }
+#time{ font-size:20px; }
+#score{ font-size:24px; font-weight:bold; }
 
-/* ===== 卓球台エリア ===== */
+/* ===== 卓球台 ===== */
 #tableWrapper{
   width:100%;
-  height:58vh;
+  height:56vh;
   display:flex;
   justify-content:center;
   align-items:center;
 }
 
-/* ★ 横幅を少し小さく */
+/* ★ 横幅をさらに詰める */
+:root{
+  --court-width:76%;
+}
+
 #table{
   position:relative;
-  width:82%;          /* ← 90% → 82% */
+  width:var(--court-width);
   height:100%;
   background:#0bbf63;
-  border:6px solid #fff; /* サイド・エンドライン */
+  border:6px solid #fff;
   box-sizing:border-box;
 }
 
@@ -67,7 +70,7 @@ body{
   transform:translateY(-50%);
 }
 
-/* センターライン（縦1本のみ） */
+/* センターライン */
 #centerLine{
   position:absolute;
   top:0;
@@ -78,61 +81,61 @@ body{
   transform:translateX(-50%);
 }
 
-/* 回転ヒント */
+/* 回転方向 */
 #spinHint{
   position:absolute;
-  top:-55px;
+  top:-48px;
   left:50%;
   transform:translateX(-50%);
-  font-size:48px;
+  font-size:44px;
   color:red;
 }
 
 /* ボール */
 #ball{
   position:absolute;
-  width:30px;
-  height:30px;
+  width:28px;
+  height:28px;
   border-radius:50%;
   background:orange;
-  left:65%;
+  left:62%;
   top:65%;
 }
 
-/* ===== 操作エリア ===== */
+/* ===== 操作ボタン ===== */
 #controls{
-  height:32vh;
+  height:35vh;
   width:100%;
   display:flex;
   justify-content:center;
-  align-items:center;
+  align-items:flex-start;
+  padding-bottom:env(safe-area-inset-bottom);
 }
 
-/* ★ 卓球台のサイドライン延長に合わせる */
 #buttonGrid{
-  width:82%; /* 卓球台と同じ横幅 */
+  width:var(--court-width); /* ← 卓球台と完全一致 */
   display:grid;
   grid-template-columns:repeat(3, 1fr);
-  grid-template-rows:repeat(3, 90px);
-  gap:14px;
+  grid-template-rows:repeat(3, 64px); /* ★ 縦を圧縮 */
+  row-gap:10px;  /* ★ 行間を詰める */
 }
 
-/* ボタン */
+/* ===== 楕円ボタン ===== */
 .spinBtn{
-  width:90px;
-  height:90px;
-  border-radius:50%;
+  width:92px;
+  height:48px;
+  border-radius:50px;
   background:#5de0e6;
-  justify-self:center; /* 各列の中央に配置 */
+  justify-self:center;
   position:relative;
 }
 
-/* 赤い斜線 */
+/* ラケット角度ライン */
 .spinBtn::after{
   content:'';
   position:absolute;
-  width:80%;
-  height:8px;
+  width:70%;
+  height:6px;
   background:red;
   top:50%;
   left:50%;
@@ -144,44 +147,4 @@ body{
   transform:translate(-50%,-50%) rotate(0deg);
 }
 .right::after{
-  transform:translate(-50%,-50%) rotate(-45deg);
-}
-</style>
-</head>
-
-<body>
-<div id="app">
-
-  <div id="topInfo">
-    <div id="time">⏱ 60</div>
-    <div id="score">スコア 1.0</div>
-  </div>
-
-  <div id="tableWrapper">
-    <div id="table">
-      <div id="spinHint">↓</div>
-      <div id="net"></div>
-      <div id="centerLine"></div>
-      <div id="ball"></div>
-    </div>
-  </div>
-
-  <div id="controls">
-    <div id="buttonGrid">
-      <div class="spinBtn left"></div>
-      <div class="spinBtn left"></div>
-      <div class="spinBtn left"></div>
-
-      <div class="spinBtn flat"></div>
-      <div class="spinBtn flat"></div>
-      <div class="spinBtn flat"></div>
-
-      <div class="spinBtn right"></div>
-      <div class="spinBtn right"></div>
-      <div class="spinBtn right"></div>
-    </div>
-  </div>
-
-</div>
-</body>
-</html>
+  transform:translate(-50%,-50%) rotate(-45d
