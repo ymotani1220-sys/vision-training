@@ -3,329 +3,225 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球総合トレーニング - 究極の道場ver</title>
+<title>横回転判断トレーニング</title>
 
 <style>
+/* ===== 全体 ===== */
 body{
   margin:0;
-  font-family:sans-serif;
-  background:#111;
+  background:#000;
   color:#fff;
+  font-family:sans-serif;
   display:flex;
   justify-content:center;
-  align-items:center;
-  height:100vh;
-  transition:background 0.8s ease;
-  overflow: hidden;
-  touch-action: manipulation;
 }
-.screen{
-  position:absolute;
+#app{
   width:100%;
-  height:100%;
+  max-width:420px;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* ===== 上部UI ===== */
+#topInfo{
+  height:10vh;
+  min-height:70px;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
+  gap:6px;
 }
-.hidden{display:none}
-button{font-size:20px;padding:16px 28px;margin:10px;cursor:pointer;border-radius:12px;border:none;background:#eee;color:#111;font-weight:bold;}
-
-/* ===== 共通UI ===== */
-.info-panel { font-size: 20px; margin-bottom: 10px; text-align: center; line-height: 1.5; z-index: 10; }
-.score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
-
-/* ===== 1. 回転判断 ===== */
-#spinGame{position:relative;width:320px;height:320px}
-#spinCenter{
-  position:absolute; top:50%; left:50%; width:80px; height:80px;
-  transform:translate(-50%, -50%); border-radius:50%; background:#fff;
-  display:flex; justify-content:center; align-items:center;
-  box-shadow: 0 0 15px rgba(255,255,255,0.5); z-index: 5;
+#time{
+  font-size:22px;
 }
-#spinArrow{
-  font-size:50px; font-weight:900; color:#f33; 
-  transition: transform 0.15s ease-out, opacity 0.1s ease-in;
+#score{
+  font-size:26px;
+  font-weight:bold;
 }
-.spin-btn{
-  position:absolute; width:56px; height:56px; border-radius:50%;
-  background:#444; border:3px solid #fff; z-index: 6;
-  padding: 0; margin: 0; display: flex; justify-content: center; align-items: center;
+
+/* ===== 卓球台エリア（拡大） ===== */
+#tableWrapper{
+  width:100%;
+  height:58vh;           /* ← かなり大きく取る */
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
-.spin-btn.active{background:#0f9;box-shadow: 0 0 20px #0f9;}
 
-/* ===== 2. 瞬間判断 ===== */
-.flash-arrow-display{font-size:130px;margin:5px;height:140px;line-height:140px;}
-.flash-controls button{background:#555;color:white;min-width: 90px;font-size:35px;}
+#table{
+  position:relative;
+  width:90%;
+  height:100%;
+  background:#0bbf63;
+  border:6px solid #fff;
+  box-sizing:border-box;
+}
 
-/* ===== 3. 打点判断 ===== */
-#hitGameArea { position:relative; width:100%; max-width:400px; height:400px; overflow:hidden; border-bottom: 4px solid #888; }
-#hitBall {
-  position:absolute; width:48px; height:48px; border-radius:50%;
-  background:#fff; box-shadow:0 0 14px rgba(255,255,255,0.9);
+/* ネット */
+#net{
+  position:absolute;
+  top:50%;
+  left:0;
+  width:100%;
+  height:6px;
+  background:#fff;
+  transform:translateY(-50%);
+}
+
+/* 縦センターライン */
+#centerLine{
+  position:absolute;
+  top:0;
+  left:50%;
+  width:6px;
+  height:100%;
+  background:#fff;
+  transform:translateX(-50%);
+}
+
+/* コート区切り（フォア・ミドル・バック） */
+.court{
+  position:absolute;
+  width:100%;
+  height:50%;
+  display:flex;
+}
+.enemy{ top:0; }
+.player{ bottom:0; }
+
+.zone{
+  flex:1;
+  border-left:3px solid #fff;
+}
+.zone:first-child{
+  border-left:none;
+}
+
+/* ===== 回転ヒント矢印 ===== */
+#spinHint{
+  position:absolute;
+  top:-55px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:48px;
+  color:red;
+}
+
+/* ===== ボール ===== */
+#ball{
+  position:absolute;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:orange;
+  left:65%;
+  top:65%;
+}
+
+/* ===== ボタンエリア ===== */
+#controls{
+  height:32vh;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* 3×3 ボタン */
+#buttonGrid{
+  display:grid;
+  grid-template-columns:repeat(3, 90px);
+  grid-template-rows:repeat(3, 90px);
+  gap:14px;
+}
+
+/* ボタン */
+.spinBtn{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  background:#5de0e6;
+  position:relative;
+}
+
+/* 赤い斜線（ラケット角度イメージ） */
+.spinBtn::after{
+  content:'';
+  position:absolute;
+  width:80%;
+  height:8px;
+  background:red;
+  top:50%;
+  left:50%;
+  transform-origin:center;
+  transform:translate(-50%,-50%) rotate(45deg);
+}
+
+/* 無回転用 */
+.flat::after{
+  transform:translate(-50%,-50%) rotate(0deg);
+}
+
+/* 右回転用 */
+.right::after{
+  transform:translate(-50%,-50%) rotate(-45deg);
 }
 </style>
 </head>
 
 <body>
+<div id="app">
 
-<div id="topScreen" class="screen">
-  <h1 style="margin-bottom:30px;">🏓 卓球トレーニング</h1>
-  <button onclick="startSpin()">1. 回転判断</button>
-  <button onclick="startFlash()">2. 瞬間判断</button>
-  <button onclick="startHit()">3. 打点判断</button>
+  <!-- 上部情報 -->
+  <div id="topInfo">
+    <div id="time">⏱ 60</div>
+    <div id="score">スコア 1.0</div>
+  </div>
+
+  <!-- 卓球台 -->
+  <div id="tableWrapper">
+    <div id="table">
+      <div id="spinHint">↓</div>
+
+      <div class="court enemy">
+        <div class="zone"></div>
+        <div class="zone"></div>
+        <div class="zone"></div>
+      </div>
+
+      <div id="net"></div>
+      <div id="centerLine"></div>
+
+      <div class="court player">
+        <div class="zone"></div>
+        <div class="zone"></div>
+        <div class="zone"></div>
+      </div>
+
+      <div id="ball"></div>
+    </div>
+  </div>
+
+  <!-- 操作 -->
+  <div id="controls">
+    <div id="buttonGrid">
+      <div class="spinBtn left"></div>
+      <div class="spinBtn left"></div>
+      <div class="spinBtn left"></div>
+
+      <div class="spinBtn flat"></div>
+      <div class="spinBtn flat"></div>
+      <div class="spinBtn flat"></div>
+
+      <div class="spinBtn right"></div>
+      <div class="spinBtn right"></div>
+      <div class="spinBtn right"></div>
+    </div>
+  </div>
+
 </div>
-
-<div id="spinScreen" class="screen hidden">
-  <div class="info-panel">
-    ⏱ <span id="spinTimeDisp">60</span><br>
-    スコア：<span id="spinScoreDisp" class="score-highlight">1.0</span>
-  </div>
-  <div id="spinGame">
-    <div id="feedbackSpin" style="position:absolute; top:-50px; width:100%; text-align:center; font-size:40px; font-weight:bold;"></div>
-    <div id="spinCenter"><div id="spinArrow">↑</div></div>
-  </div>
-</div>
-
-<div id="flashScreen" class="screen hidden">
-  <div class="info-panel">
-    ⏱ <span id="flashTimeDisp">60</span><br>
-    スコア：<span id="flashScoreDisp" class="score-highlight">1.0</span>
-  </div>
-  <div id="flashArrow" class="flash-arrow-display"></div>
-  <div id="feedbackFlash" style="font-size:45px; height:55px; font-weight:bold;"></div>
-  <div class="flash-controls">
-    <button onclick="answerFlash('left')">←</button>
-    <button onclick="answerFlash('up')">↑</button>
-    <button onclick="answerFlash('right')">→</button>
-  </div>
-</div>
-
-<div id="hitScreen" class="screen hidden">
-  <div class="info-panel">
-    ⏱ <span id="hitTimeDisp">60</span><br>
-    スコア：<span id="hitScoreDisp" class="score-highlight">1.0</span>
-  </div>
-  <div id="feedbackHit" style="font-size:40px; height:45px; font-weight:bold;"></div>
-  <div id="hitGameArea">
-    <div id="hitBall"></div>
-  </div>
-  <p style="color:#ffeb3b; font-weight:bold; margin-top:15px;">ボールがバウンドしたらボールにタッチ！</p>
-</div>
-
-<div id="endScreen" class="screen hidden">
-  <h2 style="font-size:32px;">トレーニング終了！</h2>
-  <p id="finalScore" class="score-highlight" style="font-size:48px; margin:10px 0;"></p>
-  <button onclick="backTop()">トップへ戻る</button>
-</div>
-
-<script>
-/* ===== 共通設定 ===== */
-const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35','#4a148c','#004d40'];
-const speedSettings=[1500, 1200, 1000, 850, 700, 550, 450, 350];
-
-let gameTimer = null;
-let gameTimeLeft = 60;
-let currentLvl = 1;
-let currentCombo = 0;
-
-function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-function updateBg(lvl){
-  document.body.style.background = bgColors[Math.min(lvl-1, bgColors.length-1)];
-}
-function startGlobalTimer(displayId, endFunc){
-  gameTimeLeft = 60;
-  document.getElementById(displayId).textContent = gameTimeLeft;
-  if(gameTimer) clearInterval(gameTimer);
-  gameTimer = setInterval(()=>{
-    gameTimeLeft--;
-    document.getElementById(displayId).textContent = gameTimeLeft;
-    if(gameTimeLeft <= 0) endFunc();
-  }, 1000);
-}
-
-/* ================= 1. 回転判断 (Spin) ================= */
-const anglesDeg=[-90,-45,0,45,90,135,180,225];
-const anglesRad=anglesDeg.map(a=>a*Math.PI/180);
-let rackets=[], correctIdx=0, answeredSpin=false, spinNextTimer=null;
-
-const spinArea = document.getElementById('spinGame');
-anglesRad.forEach((a,i)=>{
-  const b=document.createElement('button');
-  b.className='spin-btn';
-  // 中心座標の完全同期補正
-  const radius = 120;
-  const centerX = 160;
-  const centerY = 160;
-  const btnOffset = 28; 
-  b.style.left = (centerX + radius * Math.cos(a) - btnOffset) + 'px';
-  b.style.top  = (centerY + radius * Math.sin(a) - btnOffset) + 'px';
-  b.onclick=()=>judgeSpin(i===correctIdx);
-  rackets.push(b);
-  spinArea.appendChild(b);
-});
-
-function startSpin(){
-  currentLvl=1; currentCombo=0;
-  updateSpinScore(); updateBg(1);
-  show('spinScreen');
-  startGlobalTimer('spinTimeDisp', endSpin);
-  nextSpin();
-}
-
-function nextSpin(){
-  if(gameTimeLeft<=0) return;
-  answeredSpin=false;
-  document.getElementById('feedbackSpin').textContent='';
-  const arrowEl = document.getElementById('spinArrow');
-  arrowEl.style.opacity = "0"; // 一度消す
-  rackets.forEach(r=>r.classList.remove('active'));
-
-  setTimeout(() => {
-    if(gameTimeLeft<=0) return;
-    correctIdx=Math.floor(Math.random()*8);
-    arrowEl.style.transform=`rotate(${anglesDeg[correctIdx]+90}deg)`;
-    arrowEl.style.opacity = "1"; // 再表示
-    rackets[correctIdx].classList.add('active');
-    if(spinNextTimer) clearTimeout(spinNextTimer);
-    spinNextTimer=setTimeout(()=>judgeSpin(false), speedSettings[Math.min(currentLvl-1, 7)]);
-  }, 300);
-}
-
-function judgeSpin(ok){
-  if(answeredSpin || gameTimeLeft<=0) return;
-  answeredSpin=true; clearTimeout(spinNextTimer);
-  const fb = document.getElementById('feedbackSpin');
-  if(ok){
-    fb.textContent='〇'; fb.style.color='#0f9'; currentCombo++;
-    if(currentCombo >= 5){ currentLvl++; currentCombo=0; updateBg(currentLvl); }
-  } else {
-    fb.textContent='✖'; fb.style.color='#f00'; currentCombo=0;
-  }
-  updateSpinScore();
-  setTimeout(nextSpin, 600);
-}
-function updateSpinScore(){ document.getElementById('spinScoreDisp').textContent = `${currentLvl}.${currentCombo}`; }
-function endSpin(){ clearInterval(gameTimer); clearTimeout(spinNextTimer); showFinalScore(); }
-
-/* ================= 2. 瞬間判断 (Flash) ================= */
-let flashNextTimer=null, currentDir='', answeredFlash=false;
-function startFlash(){
-  currentLvl=1; currentCombo=0;
-  updateFlashScore(); updateBg(1);
-  show('flashScreen');
-  startGlobalTimer('flashTimeDisp', endFlash);
-  nextFlash();
-}
-function nextFlash(){
-  if(gameTimeLeft<=0) return;
-  answeredFlash=false;
-  document.getElementById('feedbackFlash').textContent='';
-  currentDir=['left','up','right'][Math.floor(Math.random()*3)];
-  const icons={left:'←',up:'↑',right:'→'};
-  document.getElementById('flashArrow').textContent=icons[currentDir];
-  if(flashNextTimer) clearTimeout(flashNextTimer);
-  flashNextTimer=setTimeout(()=>judgeFlash(null), speedSettings[Math.min(currentLvl-1, 7)]);
-}
-function answerFlash(a){ if(!answeredFlash) judgeFlash(a === currentDir); }
-function judgeFlash(ok){
-  if(answeredFlash || gameTimeLeft<=0) return;
-  answeredFlash=true; clearTimeout(flashNextTimer);
-  document.getElementById('flashArrow').textContent='';
-  const fb = document.getElementById('feedbackFlash');
-  if(ok){
-    fb.textContent='〇'; fb.style.color='#0f9'; currentCombo++;
-    if(currentCombo >= 5){ currentLvl++; currentCombo=0; updateBg(currentLvl); }
-  } else {
-    fb.textContent='✖'; fb.style.color='#f00'; currentCombo=0;
-  }
-  updateFlashScore();
-  setTimeout(nextFlash, 600);
-}
-function updateFlashScore(){ document.getElementById('flashScoreDisp').textContent = `${currentLvl}.${currentCombo}`; }
-function endFlash(){ clearInterval(gameTimer); clearTimeout(flashNextTimer); showFinalScore(); }
-
-/* ================= 3. 打点判断 (Hit) ================= */
-let hX=0, hY=0, hVX=0, hVY=0, hGrav=0.6, hMag=0, hBounced=0, hRunning=false, hTouched=false;
-const hitBall = document.getElementById('hitBall');
-
-function startHit(){
-  currentLvl=1; currentCombo=0;
-  updateHitScore(); updateBg(1);
-  show('hitScreen');
-  startGlobalTimer('hitTimeDisp', endHit);
-  serveHit();
-}
-
-function serveHit(){
-  if(gameTimeLeft<=0) return;
-  hBounced=0; hTouched=false; hRunning=true;
-  document.getElementById('feedbackHit').textContent='';
-  // レベル7以上で高度を下げ、飛び出しを抑制（スペース確保）
-  hX = 20;
-  hY = (currentLvl >= 7) ? 220 : 160; 
-  hVX = 3 + currentLvl * 0.7;
-  if(currentLvl >= 7) hVX *= 0.9;
-  if(currentLvl <= 4){ hVY = -4 + currentLvl * 0.5; hMag = 0; }
-  else { hVY = (currentLvl >= 7) ? 0 : -1; hMag = 0.01 + (currentLvl - 5) * 0.015; }
-  hGrav = (currentLvl < 3) ? 0.3 : 0.6;
-  requestAnimationFrame(hitLoop);
-}
-
-hitBall.addEventListener('pointerdown', ()=>{
-  if(hBounced === 1 && !hTouched && hRunning){
-    hTouched = true; hRunning = false;
-    const fb = document.getElementById('feedbackHit');
-    fb.textContent = '〇'; fb.style.color = '#0f9'; currentCombo++;
-    if(currentCombo >= 5){ currentLvl++; currentCombo = 0; updateBg(currentLvl); }
-    updateHitScore();
-    setTimeout(serveHit, 600);
-  }
-});
-
-function hitLoop(){
-  if(!hRunning || gameTimeLeft <= 0) return;
-  hVY += hGrav + hMag;
-  hX += hVX; hY += hVY;
-  if(hY + 24 >= 400 && hVY > 0){
-    hY = 400 - 24; hVY = -hVY * 0.8; hBounced++;
-    if(hBounced >= 2){
-      hRunning = false;
-      const fb = document.getElementById('feedbackHit');
-      fb.textContent = '✖'; fb.style.color = '#f33'; currentCombo = 0;
-      updateHitScore();
-      setTimeout(serveHit, 600);
-      return;
-    }
-  }
-  // 右端手前でリセット（タッチスペース確保）
-  if(hX > 380){
-    hRunning = false;
-    if(!hTouched){
-       const fb = document.getElementById('feedbackHit');
-       fb.textContent = '✖'; fb.style.color = '#f33'; currentCombo = 0;
-       updateHitScore();
-    }
-    setTimeout(serveHit, 400);
-    return;
-  }
-  hitBall.style.transform = `translate(${hX - 24}px, ${hY - 24}px)`;
-  requestAnimationFrame(hitLoop);
-}
-
-function updateHitScore(){ document.getElementById('hitScoreDisp').textContent = `${currentLvl}.${currentCombo}`; }
-function endHit(){ hRunning=false; clearInterval(gameTimer); showFinalScore(); }
-
-/* ===== 終了・戻る ===== */
-function showFinalScore(){
-  document.getElementById('finalScore').textContent = `${currentLvl}.${currentCombo}`;
-  show('endScreen');
-}
-function backTop(){ updateBg(1); show('topScreen'); }
-</script>
-
 </body>
 </html>
