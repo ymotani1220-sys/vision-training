@@ -23,7 +23,7 @@ body{
   align-items:center;
 }
 
-/* ===== 上部情報バー ===== */
+/* 上部 */
 #topInfo{
   width:100%;
   height:9vh;
@@ -37,7 +37,7 @@ body{
 #time{ font-size:20px; }
 #score{ font-size:24px; font-weight:bold; }
 
-/* ===== 卓球台 ===== */
+/* 卓球台 */
 #tableWrapper{
   width:100%;
   height:56vh;
@@ -45,10 +45,7 @@ body{
   justify-content:center;
   align-items:center;
 }
-
-:root{
-  --court-width:72%;
-}
+:root{ --court-width:72%; }
 
 #tableArea{
   position:relative;
@@ -56,17 +53,16 @@ body{
   height:100%;
 }
 
-/* 回転方向ヒント（エンドライン後方） */
+/* 矢印（発射直後のみ） */
 #spinHint{
   position:absolute;
-  top:-56px; /* ← エンドラインより後ろ */
-  left:50%;
-  transform:translateX(-50%);
-  font-size:48px;
+  font-size:44px;
   color:red;
+  display:none;
+  pointer-events:none;
 }
 
-/* 卓球台本体 */
+/* 卓球台 */
 #table{
   position:relative;
   width:100%;
@@ -75,8 +71,6 @@ body{
   border:6px solid #fff;
   box-sizing:border-box;
 }
-
-/* ネット */
 #net{
   position:absolute;
   top:50%;
@@ -86,8 +80,6 @@ body{
   background:#fff;
   transform:translateY(-50%);
 }
-
-/* センターライン */
 #centerLine{
   position:absolute;
   top:0;
@@ -105,56 +97,30 @@ body{
   height:28px;
   border-radius:50%;
   background:orange;
-  left:60%;
-  top:65%;
+  display:none;
 }
 
-/* ===== 操作ボタン ===== */
+/* ボタン */
 #controls{
   height:35vh;
   width:100%;
   display:flex;
   justify-content:center;
-  align-items:flex-start;
   padding-bottom:env(safe-area-inset-bottom);
 }
-
 #buttonGrid{
   width:var(--court-width);
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  grid-template-rows:repeat(3, 64px);
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(3,64px);
   row-gap:10px;
 }
-
-/* 楕円ボタン */
 .spinBtn{
   width:92px;
   height:48px;
   border-radius:50px;
   background:#5de0e6;
   justify-self:center;
-  position:relative;
-}
-
-/* ラケット角度 */
-.spinBtn::after{
-  content:'';
-  position:absolute;
-  width:70%;
-  height:6px;
-  background:red;
-  top:50%;
-  left:50%;
-  transform-origin:center;
-  transform:translate(-50%,-50%) rotate(45deg);
-}
-
-.flat::after{
-  transform:translate(-50%,-50%) rotate(0deg);
-}
-.right::after{
-  transform:translate(-50%,-50%) rotate(-45deg);
 }
 </style>
 </head>
@@ -180,20 +146,58 @@ body{
 
   <div id="controls">
     <div id="buttonGrid">
-      <div class="spinBtn left"></div>
-      <div class="spinBtn left"></div>
-      <div class="spinBtn left"></div>
-
-      <div class="spinBtn flat"></div>
-      <div class="spinBtn flat"></div>
-      <div class="spinBtn flat"></div>
-
-      <div class="spinBtn right"></div>
-      <div class="spinBtn right"></div>
-      <div class="spinBtn right"></div>
+      <div class="spinBtn"></div><div class="spinBtn"></div><div class="spinBtn"></div>
+      <div class="spinBtn"></div><div class="spinBtn"></div><div class="spinBtn"></div>
+      <div class="spinBtn"></div><div class="spinBtn"></div><div class="spinBtn"></div>
     </div>
   </div>
 
 </div>
+
+<script>
+const ball = document.getElementById('ball');
+const hint = document.getElementById('spinHint');
+const table = document.getElementById('table');
+
+/* 相手の発射位置（フォア・ミドル・バック） */
+const launchPositions = [
+  0.25, // フォア
+  0.50, // ミドル
+  0.75  // バック
+];
+
+/* 回転方向 */
+const spins = ['↙','↓','↘'];
+
+function launchBall(){
+  const tableRect = table.getBoundingClientRect();
+
+  const xRatio = launchPositions[Math.floor(Math.random()*3)];
+  const spin = spins[Math.floor(Math.random()*3)];
+
+  const x = tableRect.width * xRatio;
+  const y = tableRect.height * 0.1;
+
+  /* ボール配置 */
+  ball.style.left = (x - 14) + 'px';
+  ball.style.top = (y - 14) + 'px';
+  ball.style.display = 'block';
+
+  /* 矢印：ボールのすぐ後ろ */
+  hint.textContent = spin;
+  hint.style.left = (x - 22) + 'px';
+  hint.style.top = (y - 60) + 'px';
+  hint.style.display = 'block';
+
+  /* 一瞬で消す */
+  setTimeout(()=>{
+    hint.style.display = 'none';
+  }, 400);
+}
+
+/* テスト用：2秒ごとに発射 */
+setInterval(launchBall, 2000);
+</script>
+
 </body>
 </html>
