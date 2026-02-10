@@ -43,7 +43,7 @@ body{
   height:58vh;
   display:flex;
   justify-content:center;
-  align-items:flex-end; /* 下寄せ */
+  align-items:flex-end;
   padding-top:10px;
 }
 :root{ --court-width:70%; }
@@ -54,10 +54,10 @@ body{
   height:92%;
 }
 
-/* ===== 矢印（エンドライン外） ===== */
+/* ===== 矢印 ===== */
 #spinHint{
   position:absolute;
-  top:-70px;             /* エンドライン外 */
+  top:-70px;
   font-size:52px;
   font-weight:900;
   color:#ff2a2a;
@@ -117,15 +117,39 @@ body{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   grid-template-rows:repeat(3,56px);
-  row-gap:6px;           /* 縦を詰める */
+  row-gap:6px;
 }
 .spinBtn{
+  position:relative;
   width:90px;
   height:44px;
   border-radius:50px;
   background:#5de0e6;
   justify-self:center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
+.spinBtn.correct{
+  background:#2ecc71;
+  box-shadow:0 0 12px #2ecc71;
+}
+.spinBtn.wrong{
+  background:#e74c3c;
+  box-shadow:0 0 12px #e74c3c;
+}
+
+/* ラケット角度線 */
+.blade{
+  position:absolute;
+  width:36px;
+  height:4px;
+  background:#003344;
+  border-radius:2px;
+}
+.blade.left{ transform:rotate(-25deg); }
+.blade.center{ transform:rotate(0deg); }
+.blade.right{ transform:rotate(25deg); }
 </style>
 </head>
 
@@ -150,9 +174,18 @@ body{
 
   <div id="controls">
     <div id="buttonGrid">
-      <div class="spinBtn"></div><div class="spinBtn"></div><div class="spinBtn"></div>
-      <div class="spinBtn"></div><div class="spinBtn"></div><div class="spinBtn"></div>
-      <div class="spinBtn"></div><div class="spinBtn"></div><div class="spinBtn"></div>
+      <!-- フォア -->
+      <div class="spinBtn" data-course="0" data-spin="0"><span class="blade left"></span></div>
+      <div class="spinBtn" data-course="0" data-spin="1"><span class="blade center"></span></div>
+      <div class="spinBtn" data-course="0" data-spin="2"><span class="blade right"></span></div>
+      <!-- ミドル -->
+      <div class="spinBtn" data-course="1" data-spin="0"><span class="blade left"></span></div>
+      <div class="spinBtn" data-course="1" data-spin="1"><span class="blade center"></span></div>
+      <div class="spinBtn" data-course="1" data-spin="2"><span class="blade right"></span></div>
+      <!-- バック -->
+      <div class="spinBtn" data-course="2" data-spin="0"><span class="blade left"></span></div>
+      <div class="spinBtn" data-course="2" data-spin="1"><span class="blade center"></span></div>
+      <div class="spinBtn" data-course="2" data-spin="2"><span class="blade right"></span></div>
     </div>
   </div>
 
@@ -163,40 +196,74 @@ const ball = document.getElementById('ball');
 const hint = document.getElementById('spinHint');
 const table = document.getElementById('table');
 
+let correctSpin = 0;    // 0:left 1:center 2:right
+let correctCourse = 0; // 0:fore 1:middle 2:back
+let judging = false;
+
 /* 発射位置（コーナー寄り） */
 const launchRatios = [
-  0.18, // フォア（左コーナー寄り）
+  0.18, // フォア
   0.50, // ミドル
-  0.82  // バック（右コーナー寄り）
+  0.82  // バック
 ];
 
+/* 回転表示 */
 const spins = ['↙','↓','↘'];
 
 function launchBall(){
+  if(judging) return;
+  judging = true;
+
   const rect = table.getBoundingClientRect();
 
-  const xRatio = launchRatios[Math.floor(Math.random()*3)];
-  const spin = spins[Math.floor(Math.random()*3)];
+  correctCourse = Math.floor(Math.random()*3);
+  correctSpin = Math.floor(Math.random()*3);
+
+  const xRatio = launchRatios[correctCourse];
+  const spin = spins[correctSpin];
 
   const x = rect.width * xRatio;
   const y = rect.height * 0.08;
 
-  /* ボール */
   ball.style.left = (x - 14) + 'px';
   ball.style.top = (y - 14) + 'px';
   ball.style.display = 'block';
 
-  /* 矢印：完全に外 */
   hint.textContent = spin;
   hint.style.left = (x - 26) + 'px';
   hint.style.display = 'block';
 
-  setTimeout(()=>{
-    hint.style.display = 'none';
-  }, 350);
+  setTimeout(()=>{ hint.style.display = 'none'; }, 350);
 }
 
-setInterval(launchBall, 2000);
+/* 判定 */
+document.querySelectorAll('.spinBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(!judging) return;
+
+    const c = Number(btn.dataset.course);
+    const s = Number(btn.dataset.spin);
+
+    if(c === correctCourse && s === correctSpin){
+      btn.classList.add('correct');
+    }else{
+      btn.classList.add('wrong');
+    }
+
+    judging = false;
+
+    setTimeout(()=>{
+      document.querySelectorAll('.spinBtn').forEach(b=>{
+        b.classList.remove('correct','wrong');
+      });
+      ball.style.display = 'none';
+      launchBall();
+    }, 600);
+  });
+});
+
+/* テスト用自動発射 */
+launchBall();
 </script>
 
 </body>
