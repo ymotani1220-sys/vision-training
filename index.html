@@ -22,14 +22,20 @@ body{
   font-size:16px;
 }
 
+/* ===== 予測矢印スペース ===== */
+#predict-area{
+  position:relative;
+  height:70px; /* 矢印専用 */
+}
+
 /* ===== 卓球台 ===== */
 #table{
   position:relative;
-  width:78vw;              /* 横幅を詰めて調整 */
-  height:42vh;
+  width:76vw;
+  height:46vh;          /* 高さをしっかり確保 */
   margin:0 auto;
   background:#1f7a4d;
-  border:4px solid white;  /* サイド＆エンドライン */
+  border:4px solid white;
   box-sizing:border-box;
 }
 
@@ -56,74 +62,63 @@ body{
 /* ===== ボール ===== */
 .ball{
   position:absolute;
-  width:14px;
-  height:14px;
+  width:28px;   /* 直径2倍 */
+  height:28px;
   background:#ff7a00;
   border-radius:50%;
   z-index:5;
+  box-shadow:0 0 8px rgba(0,0,0,0.4);
 }
 
-/* ===== 回転矢印 ===== */
+/* ===== 回転矢印（統一デザイン） ===== */
 .spin-arrow{
   position:absolute;
-  font-size:38px;
-  font-weight:bold;
-  color:yellow;
-  z-index:4;
+  font-size:42px;
+  font-weight:900;
+  color:#ffd400;
+  z-index:6;
+  pointer-events:none;
 }
 
 /* ===== 判定ボタン ===== */
 #buttons{
   position:absolute;
-  bottom:8px;
+  bottom:10px;
   width:100%;
   display:flex;
   justify-content:center;
-  gap:24px;
+  gap:22px;
 }
 
-/* コース列 */
 .course{
   display:flex;
   flex-direction:column;
-  gap:6px; /* 縦間隔を詰める */
+  gap:4px; /* さらに詰める */
 }
 
-/* ボタン */
 .btn{
-  width:90px;
-  height:42px;
-  background:#ddd;
+  width:92px;
+  height:44px;
+  background:#e6e6e6;
   border-radius:50%;
   position:relative;
   border:2px solid #444;
 }
 
-/* ラケット角度ライン */
 .btn::after{
   content:"";
   position:absolute;
-  width:70%;
-  height:2px;
+  width:72%;
+  height:3px;
   background:#333;
   top:50%;
-  left:15%;
+  left:14%;
 }
 
-/* 左曲がり */
-.left::after{
-  transform:rotate(-25deg);
-}
-
-/* 直進 */
-.straight::after{
-  transform:rotate(0deg);
-}
-
-/* 右曲がり */
-.right::after{
-  transform:rotate(25deg);
-}
+/* ラケット角度 */
+.left::after{ transform:rotate(-25deg); }
+.straight::after{ transform:rotate(0deg); }
+.right::after{ transform:rotate(25deg); }
 
 /* ヒット演出 */
 .hitFlash{
@@ -139,6 +134,8 @@ body{
   <div>SCORE: 0</div>
 </div>
 
+<div id="predict-area"></div>
+
 <div id="table">
   <div id="center-line"></div>
   <div id="net"></div>
@@ -146,21 +143,16 @@ body{
 
 <!-- 判定ボタン -->
 <div id="buttons">
-  <!-- フォア -->
   <div class="course">
     <div class="btn left"></div>
     <div class="btn straight"></div>
     <div class="btn right"></div>
   </div>
-
-  <!-- ミドル -->
   <div class="course">
     <div class="btn left"></div>
     <div class="btn straight"></div>
     <div class="btn right"></div>
   </div>
-
-  <!-- バック -->
   <div class="course">
     <div class="btn left"></div>
     <div class="btn straight"></div>
@@ -169,13 +161,14 @@ body{
 </div>
 
 <script>
-/* ===== 定義 ===== */
 const table = document.getElementById("table");
+const predict = document.getElementById("predict-area");
+
 const tableWidth = table.clientWidth;
 const serveX = [
-  tableWidth * 0.18, // フォア（コーナー寄り）
-  tableWidth * 0.5,  // ミドル
-  tableWidth * 0.82  // バック（コーナー寄り）
+  tableWidth * 0.18,
+  tableWidth * 0.5,
+  tableWidth * 0.82
 ];
 
 let correctCourse = 0;
@@ -190,14 +183,14 @@ function launchBall(){
   ball.className = "ball";
   table.appendChild(ball);
 
-  ball.style.left = serveX[correctCourse] + "px";
-  ball.style.top = "10px";
+  ball.style.left = serveX[correctCourse] - 14 + "px";
+  ball.style.top = "12px";
 
   showArrow(correctCourse, correctSpin);
 
   ball.animate([
     { transform:"translate(0,0)" },
-    { transform:`translate(${[-60,0,60][correctSpin]}px, 260px)` }
+    { transform:`translate(${[-80,0,80][correctSpin]}px, 300px)` }
   ],{
     duration:900,
     easing:"ease-out",
@@ -211,16 +204,19 @@ function launchBall(){
 function showArrow(course, spin){
   const arrow = document.createElement("div");
   arrow.className = "spin-arrow";
-  arrow.textContent = spin === 0 ? "↙" : spin === 1 ? "↓" : "↘";
 
-  arrow.style.left = serveX[course] - 10 + "px";
-  arrow.style.top = "-46px"; // エンドライン外
+  arrow.textContent =
+    spin === 0 ? "⟲" :
+    spin === 1 ? "↓" : "⟳";
 
-  table.appendChild(arrow);
-  setTimeout(()=>arrow.remove(),400);
+  arrow.style.left = serveX[course] - 18 + "px";
+  arrow.style.top = "10px";
+
+  predict.appendChild(arrow);
+  setTimeout(()=>arrow.remove(),450);
 }
 
-/* ===== ボタン判定 ===== */
+/* ===== 判定 ===== */
 document.querySelectorAll(".course").forEach((col,c)=>{
   col.querySelectorAll(".btn").forEach((btn,s)=>{
     btn.onclick = ()=>{
@@ -233,7 +229,6 @@ document.querySelectorAll(".course").forEach((col,c)=>{
   });
 });
 
-/* 初回 */
 launchBall();
 </script>
 
