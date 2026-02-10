@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>横回転判断ゲーム</title>
+<title>横回転判断トレーニング</title>
 
 <style>
 body{
@@ -25,14 +25,14 @@ body{
 /* ===== 予測矢印エリア ===== */
 #predict-area{
   position:relative;
-  height:80px;
+  height:90px;
 }
 
 /* ===== 卓球台 ===== */
 #table{
   position:relative;
-  width:76vw;
-  height:46vh;
+  width:72vw;
+  height:60vh;
   margin:0 auto;
   background:#1f7a4d;
   border:4px solid white;
@@ -65,27 +65,26 @@ body{
   background:#ff7a00;
   border-radius:50%;
   z-index:5;
-  box-shadow:0 0 10px rgba(0,0,0,0.45);
+  box-shadow:0 0 12px rgba(0,0,0,0.5);
 }
 
-/* ===== 回転矢印（統一） ===== */
+/* ===== 回転矢印 ===== */
 .spin-arrow{
   position:absolute;
   font-size:56px;
   font-weight:900;
   color:#ffd400;
-  z-index:6;
   pointer-events:none;
 }
 
 /* ===== 判定ボタン ===== */
 #buttons{
   position:absolute;
-  bottom:10px;
+  bottom:12px;
   width:100%;
   display:flex;
   justify-content:center;
-  gap:22px;
+  gap:24px;
 }
 
 .course{
@@ -101,16 +100,17 @@ body{
   border-radius:50%;
   position:relative;
   border:2px solid #444;
+  cursor:pointer;
 }
 
 .btn::after{
   content:"";
   position:absolute;
-  width:72%;
+  width:70%;
   height:3px;
   background:#333;
   top:50%;
-  left:14%;
+  left:15%;
 }
 
 /* ラケット角度 */
@@ -118,8 +118,14 @@ body{
 .straight::after{ transform:rotate(0deg); }
 .right::after{ transform:rotate(25deg); }
 
-.hitFlash{
-  background:rgba(255,240,200,0.3);
+/* フィードバック */
+.btn.correct{
+  background:#2ecc71;
+  box-shadow:0 0 14px #2ecc71;
+}
+.btn.wrong{
+  background:#ff6b6b;
+  box-shadow:0 0 14px #ff6b6b;
 }
 </style>
 </head>
@@ -139,20 +145,25 @@ body{
 </div>
 
 <div id="buttons">
+  <!-- フォア -->
   <div class="course">
-    <div class="btn left"></div>
-    <div class="btn straight"></div>
-    <div class="btn right"></div>
+    <div class="btn left" data-course="0" data-spin="left"></div>
+    <div class="btn straight" data-course="0" data-spin="straight"></div>
+    <div class="btn right" data-course="0" data-spin="right"></div>
   </div>
+
+  <!-- ミドル -->
   <div class="course">
-    <div class="btn left"></div>
-    <div class="btn straight"></div>
-    <div class="btn right"></div>
+    <div class="btn left" data-course="1" data-spin="left"></div>
+    <div class="btn straight" data-course="1" data-spin="straight"></div>
+    <div class="btn right" data-course="1" data-spin="right"></div>
   </div>
+
+  <!-- バック -->
   <div class="course">
-    <div class="btn left"></div>
-    <div class="btn straight"></div>
-    <div class="btn right"></div>
+    <div class="btn left" data-course="2" data-spin="left"></div>
+    <div class="btn straight" data-course="2" data-spin="straight"></div>
+    <div class="btn right" data-course="2" data-spin="right"></div>
   </div>
 </div>
 
@@ -161,6 +172,8 @@ const table = document.getElementById("table");
 const predict = document.getElementById("predict-area");
 
 const tableWidth = table.clientWidth;
+
+/* フォア・ミドル・バック（コーナー寄り） */
 const serveX = [
   tableWidth * 0.18,
   tableWidth * 0.5,
@@ -168,6 +181,11 @@ const serveX = [
 ];
 
 let correctCourse = 0;
+/*
+  0 = プレイヤーから見て左に曲がる
+  1 = 直進
+  2 = プレイヤーから見て右に曲がる
+*/
 let correctSpin = 0;
 
 /* ===== ボール発射 ===== */
@@ -184,18 +202,18 @@ function launchBall(){
 
   showArrow(correctCourse, correctSpin);
 
-  const curve = [140, 0, -140]; // ←左右逆転（受け手視点）
+  const curve = [-140, 0, 140];
 
   ball.animate([
     { transform:"translate(0,0)" },
-    { transform:`translate(${curve[correctSpin]}px, 320px)` }
+    { transform:`translate(${curve[correctSpin]}px, 460px)` }
   ],{
-    duration:950,
+    duration:1600,
     easing:"cubic-bezier(.2,.8,.3,1)",
     fill:"forwards"
   });
 
-  setTimeout(()=>ball.remove(),1100);
+  setTimeout(()=>ball.remove(),1800);
 }
 
 /* ===== 予測矢印 ===== */
@@ -204,28 +222,38 @@ function showArrow(course, spin){
   arrow.className = "spin-arrow";
 
   arrow.textContent =
-    spin === 0 ? "⟳" :   // 左曲がり（逆向き）
+    spin === 0 ? "←" :
     spin === 1 ? "↓" :
-                 "⟲";  // 右曲がり
+                 "→";
 
   arrow.style.left = serveX[course] - 24 + "px";
-  arrow.style.top = "6px";
+  arrow.style.top = "12px";
 
   predict.appendChild(arrow);
   setTimeout(()=>arrow.remove(),900);
 }
 
 /* ===== 判定 ===== */
-document.querySelectorAll(".course").forEach((col,c)=>{
-  col.querySelectorAll(".btn").forEach((btn,s)=>{
-    btn.onclick = ()=>{
-      if(c===correctCourse && s===correctSpin){
-        document.body.classList.add("hitFlash");
-        setTimeout(()=>document.body.classList.remove("hitFlash"),200);
-      }
-      launchBall();
-    };
-  });
+document.querySelectorAll(".btn").forEach(btn=>{
+  btn.onclick = ()=>{
+    const course = Number(btn.dataset.course);
+    const spinStr = btn.dataset.spin;
+
+    const spinMap = { left:0, straight:1, right:2 };
+    const isCorrect =
+      course === correctCourse &&
+      spinMap[spinStr] === correctSpin;
+
+    if(isCorrect){
+      btn.classList.add("correct");
+      setTimeout(()=>btn.classList.remove("correct"),300);
+    }else{
+      btn.classList.add("wrong");
+      setTimeout(()=>btn.classList.remove("wrong"),300);
+    }
+
+    launchBall();
+  };
 });
 
 launchBall();
