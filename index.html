@@ -1,280 +1,221 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>横回転判断トレーニング - iPhone最適化ver</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卓球総合トレーニング - 四神完全版</title>
 
 <style>
 body{
-  margin:0;
-  background:#111;
-  font-family:sans-serif;
-  color:#fff;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  height:100vh;
-  overflow: hidden;
-  touch-action: manipulation;
+  margin:0; font-family:sans-serif; background:#111; color:#fff;
+  display:flex; justify-content:center; align-items:center; height:100vh;
+  transition:background 0.8s ease; overflow: hidden; touch-action: manipulation;
 }
-
-/* ===== 共通パネル ===== */
-.info-panel {
-  width: 100%;
-  max-width: 400px;
-  padding: 10px;
-  display: flex;
-  justify-content: space-around;
-  font-size: 18px;
-  text-align: center;
+.screen{
+  position:absolute; width:100%; height:100%;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
 }
-.score-highlight { font-size: 26px; color: #ffeb3b; font-weight: bold; }
+.hidden{display:none}
+button{font-size:20px; padding:16px 28px; margin:10px; cursor:pointer; border-radius:12px; border:none; background:#eee; color:#111; font-weight:bold;}
 
-/* ===== コートエリア (iPhone向け最適化) ===== */
-.court-wrapper{
-  position:relative;
-  width: 100vw; /* 画面幅いっぱいを基準に */
-  max-width: 375px; /* iPhoneの標準的な幅 */
-  height: 380px;
-  margin: 5px 0;
+/* ===== 共通UI ===== */
+.info-panel { font-size: 20px; margin-bottom: 10px; text-align: center; line-height: 1.5; z-index: 10; }
+.score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
+
+/* ===== 1. 回転判断 ===== */
+#spinGame{position:relative; width:320px; height:320px}
+#spinCenter{
+  position:absolute; top:50%; left:50%; width:80px; height:80px; transform:translate(-50%, -50%);
+  border-radius:50%; background:#fff; display:flex; justify-content:center; align-items:center;
+  box-shadow: 0 0 15px rgba(255,255,255,0.5); z-index: 5;
 }
+#spinArrow{ font-size:50px; font-weight:900; color:#f33; transition: transform 0.15s ease-out, opacity 0.1s ease-in; }
+.spin-btn{ position:absolute; width:56px; height:56px; border-radius:50%; background:#444; border:3px solid #fff; z-index: 6; }
+.spin-btn.active{background:#0f9; box-shadow: 0 0 20px #0f9;}
 
-.court{
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  width: 220px; /* ★台を少し狭くして左右の余白を確保 */
-  height: 100%;
-  background: #1c6b3c;
-  border: 3px solid #fff;
-  box-sizing: border-box;
+/* ===== 2. 瞬間判断 ===== */
+.flash-arrow-display{font-size:130px; margin:5px; height:140px; line-height:140px;}
+.flash-controls button{background:#555; color:white; min-width: 90px; font-size:35px;}
+
+/* ===== 3. 打点判断 ===== */
+#hitGameArea { position:relative; width:100%; max-width:400px; height:360px; overflow:hidden; border-bottom: 4px solid #888; }
+#hitBall { position:absolute; width:48px; height:48px; border-radius:50%; background:#fff; box-shadow:0 0 14px rgba(255,255,255,0.9); }
+
+/* ===== 4. 横回転判断 ===== */
+.court-wrapper{ position:relative; width:100vw; max-width:375px; height:350px; margin: 5px 0; }
+.court{ position:absolute; left:50%; transform:translateX(-50%); width:220px; height:100%; background:#1c6b3c; border:3px solid #fff; box-sizing:border-box; }
+.net-line{ position:absolute; top:50%; left:0; width:100%; height:4px; background:rgba(255,255,255,0.8); z-index:2; }
+.side-ball{ position:absolute; width:22px; height:22px; background:#ffcc00; border-radius:50%; transform:translate(-50%,-50%); z-index:10; box-shadow:0 0 10px rgba(255,204,0,0.8); }
+.spin-anim{
+  position:absolute; width:70px; height:70px; border:5px solid #ff5555; border-radius:50%; display:none; z-index:5; opacity:0.5;
 }
-
-.line{ position:absolute; background:#fff; }
-.centerline{ left:50%; top:0; width:2px; height:100%; transform:translateX(-50%); opacity: 0.6; }
-.net{
-  position:absolute; top:50%; left:0; width:100%; height:4px;
-  background:rgba(255,255,255,0.8); z-index:2;
-}
-
-/* ===== ボールと回転演出 ===== */
-.ball{
-  position:absolute;
-  width:22px;
-  height:22px;
-  background:#ffcc00;
-  border-radius:50%;
-  transform:translate(-50%,-50%);
-  z-index:10;
-  box-shadow: 0 0 10px rgba(255,204,0,0.8);
-}
-
-.spin-arrow{
-  position:absolute;
-  width:70px;
-  height:70px;
-  border:5px solid #ff5555;
-  border-radius:50%;
-  display:none;
-  z-index: 5;
-  opacity: 0.5;
-}
-.spin-arrow.ccw{ border-right-color:transparent; animation: spin-ccw 0.5s linear infinite; }
-.spin-arrow.cw{ border-left-color:transparent; animation: spin-cw 0.5s linear infinite; }
-
-@keyframes spin-ccw { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(-360deg); } }
-@keyframes spin-cw { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
-
-/* ===== 判断ボタンエリア ===== */
-.buttons-container {
-  display: flex;
-  gap: 8px;
-  margin-top: 5px;
-}
-
-.btn-col{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  background: rgba(255,255,255,0.05);
-  padding: 6px;
-  border-radius: 10px;
-}
-
-.btn{
-  width: 75px;
-  height: 40px;
-  background:#444;
-  border-radius:20px;
-  border:2px solid #fff;
-  position:relative;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.btn.correct{background:#0f9 !important; box-shadow: 0 0 10px #0f9;}
-.btn.wrong{background:#f33 !important; box-shadow: 0 0 10px #f33;}
-
-.angle-line{ width:28px; height:4px; background:#fff; border-radius: 2px; }
+.ccw{ border-right-color:transparent; animation: rotate-ccw 0.5s linear infinite; }
+.cw{ border-left-color:transparent; animation: rotate-cw 0.5s linear infinite; }
+@keyframes rotate-ccw { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(-360deg); } }
+@keyframes rotate-cw { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(360deg); } }
+.side-btns { display:flex; gap:8px; margin-top:5px; }
+.side-btn-col { display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.05); padding:6px; border-radius:10px; }
+.side-btn { width:75px; height:40px; background:#444; border-radius:20px; border:2px solid #fff; cursor:pointer; display:flex; justify-content:center; align-items:center; }
+.side-btn.correct{background:#0f9 !important; box-shadow:0 0 10px #0f9;}
+.side-btn.wrong{background:#f33 !important; box-shadow:0 0 10px #f33;}
+.angle-bar { width:28px; height:4px; background:#fff; border-radius:2px; }
 .angle-left{ transform: rotate(-25deg); }
 .angle-center{ transform: rotate(0deg); }
 .angle-right{ transform: rotate(25deg); }
-
-#feedback { font-size: 36px; height: 40px; font-weight: bold; margin-bottom: 5px; }
 </style>
 </head>
 
 <body>
 
-<div class="info-panel">
-  <div>⏱ <span id="timeDisp">60</span></div>
-  <div>スコア：<span id="scoreDisp" class="score-highlight">1.0</span></div>
+<div id="topScreen" class="screen">
+  <h1>🏓 卓球トレーニング道場</h1>
+  <button onclick="startSpin()">1. 回転判断</button>
+  <button onclick="startFlash()">2. 瞬間判断</button>
+  <button onclick="startHit()">3. 打点判断</button>
+  <button onclick="startSide()">4. 横回転判断</button>
 </div>
 
-<div id="feedback"></div>
-
-<div class="court-wrapper" id="wrapper">
-  <div class="spin-arrow" id="spinArrow"></div>
-  <div class="court">
-    <div class="line centerline"></div>
-    <div class="net"></div>
+<div id="spinScreen" class="screen hidden">
+  <div class="info-panel">⏱ <span id="spinTime">60</span><br>スコア：<span id="spinScore" class="score-highlight">1.0</span></div>
+  <div id="spinGame">
+    <div id="fbSpin" style="position:absolute; top:-50px; width:100%; text-align:center; font-size:40px; font-weight:bold;"></div>
+    <div id="spinCenter"><div id="spinArrow">↑</div></div>
   </div>
-  <div class="ball" id="ball"></div>
 </div>
 
-<div class="buttons-container" id="buttons"></div>
+<div id="flashScreen" class="screen hidden">
+  <div class="info-panel">⏱ <span id="flashTime">60</span><br>スコア：<span id="flashScore" class="score-highlight">1.0</span></div>
+  <div id="flashArrow" class="flash-arrow-display"></div>
+  <div id="fbFlash" style="font-size:45px; font-weight:bold; height:50px; text-align:center;"></div>
+  <div class="flash-controls">
+    <button onclick="answerFlash('left')">←</button><button onclick="answerFlash('up')">↑</button><button onclick="answerFlash('right')">→</button>
+  </div>
+</div>
+
+<div id="hitScreen" class="screen hidden">
+  <div class="info-panel">⏱ <span id="hitTime">60</span><br>スコア：<span id="hitScore" class="score-highlight">1.0</span></div>
+  <div id="fbHit" style="font-size:40px; font-weight:bold; height:45px; text-align:center;"></div>
+  <div id="hitGameArea"><div id="hitBall"></div></div>
+  <p style="color:#ffeb3b; font-weight:bold; margin-top:15px;">ボールがバウンドしたらボールにタッチ！</p>
+</div>
+
+<div id="sideScreen" class="screen hidden">
+  <div class="info-panel">⏱ <span id="sideTime">60</span><br>スコア：<span id="sideScore" class="score-highlight">1.0</span></div>
+  <div id="fbSide" style="font-size:36px; font-weight:bold; height:40px; text-align:center;"></div>
+  <div class="court-wrapper" id="sideWrapper">
+    <div class="spin-anim" id="sideSpinAnim"></div>
+    <div class="court"><div class="net-line"></div></div>
+    <div class="side-ball" id="sideBall"></div>
+  </div>
+  <div class="side-btns" id="sideBtns"></div>
+</div>
+
+<div id="endScreen" class="screen hidden">
+  <h2 style="font-size:32px;">トレーニング終了！</h2>
+  <p id="finalScore" class="score-highlight" style="font-size:48px; margin:10px 0;"></p>
+  <button onclick="backTop()">トップへ戻る</button>
+</div>
 
 <script>
-let currentLvl = 1;
-let currentCombo = 0;
-let timeLeft = 60;
-let correctCol = 0;
-let correctSpin = 1;
-let isAnswered = false;
-let gameActive = true;
+/* 全般設定 */
+const bgColors=['#111','#1a2635','#1a3526','#352a1a','#351a1a','#261a35','#351a35','#4a148c','#004d40'];
+const speedSettings=[1500, 1200, 1000, 850, 700, 550, 450, 350];
+const sideSpeedSettings=[2500, 2200, 1900, 1600, 1300, 1100, 900, 800];
 
-const speedSettings = [2500, 2200, 1900, 1600, 1300, 1100, 900, 800];
-const curvePower = 70; // ★iPhoneで画面外に出ないよう少し調整
+let gameTimer=null, timeLeft=60, curLvl=1, curCombo=0;
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+function updateBg(l){ document.body.style.background=bgColors[Math.min(l-1,8)]; }
+function startTimer(id, endF){ timeLeft=60; document.getElementById(id).textContent=timeLeft; if(gameTimer) clearInterval(gameTimer); gameTimer=setInterval(()=>{ timeLeft--; document.getElementById(id).textContent=timeLeft; if(timeLeft<=0) endF(); },1000); }
 
-const ball = document.getElementById("ball");
-const spinArrow = document.getElementById("spinArrow");
-const wrapper = document.getElementById("wrapper");
+/* 1. SPIN */
+const sAngs=[-90,-45,0,45,90,135,180,225], sRackets=[];
+const sArea=document.getElementById('spinGame');
+sAngs.forEach((a,i)=>{
+  const b=document.createElement('button'); b.className='spin-btn';
+  b.style.left=(160+120*Math.cos(a*Math.PI/180)-28)+'px'; b.style.top=(160+120*Math.sin(a*Math.PI/180)-28)+'px';
+  b.onclick=()=>judgeSpin(i===correctIdx); sRackets.push(b); sArea.appendChild(b);
+});
+let correctIdx=0, answeredS=false, sNextT=null;
+function startSpin(){ curLvl=1; curCombo=0; updateSpinUI(); updateBg(1); show('spinScreen'); startTimer('spinTime', endSpin); nextSpin(); }
+function nextSpin(){
+  if(timeLeft<=0) return; answeredS=false; document.getElementById('fbSpin').textContent=''; const ar=document.getElementById('spinArrow'); ar.style.opacity="0"; sRackets.forEach(r=>r.classList.remove('active'));
+  setTimeout(()=>{ if(timeLeft<=0) return; correctIdx=Math.floor(Math.random()*8); ar.style.transform=`rotate(${sAngs[correctIdx]+90}deg)`; ar.style.opacity="1"; sRackets[correctIdx].classList.add('active'); if(sNextT) clearTimeout(sNextT); sNextT=setTimeout(()=>judgeSpin(false), speedSettings[Math.min(curLvl-1,7)]); },300);
+}
+function judgeSpin(ok){ if(answeredS||timeLeft<=0) return; answeredS=true; clearTimeout(sNextT); const fb=document.getElementById('fbSpin'); if(ok){ fb.textContent='〇'; fb.style.color='#0f9'; curCombo++; if(curCombo>=5){curLvl++;curCombo=0;updateBg(curLvl);} }else{ fb.textContent='✖'; fb.style.color='#f33'; curCombo=0; } updateSpinUI(); setTimeout(nextSpin,600); }
+function updateSpinUI(){ document.getElementById('spinScore').textContent=`${curLvl}.${curCombo}`; }
+function endSpin(){ clearInterval(gameTimer); clearTimeout(sNextT); finish(); }
 
-/* ボタン生成 */
-for(let col=0; col<3; col++){
-  const colDiv=document.createElement("div");
-  colDiv.className="btn-col";
-  ["left","center","right"].forEach(type=>{
-    const btn=document.createElement("div");
-    btn.className="btn";
-    btn.dataset.col=col;
-    btn.dataset.type=type;
-    const line=document.createElement("div");
-    line.className="angle-line angle-"+type;
-    btn.appendChild(line);
-    btn.onclick=()=>judge(btn);
-    colDiv.appendChild(btn);
+/* 2. FLASH */
+let fNextT=null, fDir='', answeredF=false;
+function startFlash(){ curLvl=1; curCombo=0; updateFlashUI(); updateBg(1); show('flashScreen'); startTimer('flashTime', endFlash); nextFlash(); }
+function nextFlash(){ if(timeLeft<=0) return; answeredF=false; document.getElementById('fbFlash').textContent=''; fDir=['left','up','right'][Math.floor(Math.random()*3)]; const icons={left:'←',up:'↑',right:'→'}; document.getElementById('flashArrow').textContent=icons[fDir]; if(fNextT) clearTimeout(fNextT); fNextT=setTimeout(()=>judgeFlash(null), speedSettings[Math.min(curLvl-1,7)]); }
+function answerFlash(a){ if(!answeredF) judgeFlash(a===fDir); }
+function judgeFlash(ok){ if(answeredF||timeLeft<=0) return; answeredF=true; clearTimeout(fNextT); document.getElementById('flashArrow').textContent=''; const fb=document.getElementById('fbFlash'); if(ok){ fb.textContent='〇'; fb.style.color='#0f9'; curCombo++; if(curCombo>=5){curLvl++;curCombo=0;updateBg(curLvl);} }else{ fb.textContent='✖'; fb.style.color='#f33'; curCombo=0; } updateFlashUI(); setTimeout(nextFlash,600); }
+function updateFlashUI(){ document.getElementById('flashScore').textContent=`${curLvl}.${curCombo}`; }
+function endFlash(){ clearInterval(gameTimer); clearTimeout(fNextT); finish(); }
+
+/* 3. HIT */
+let hX, hY, hVX, hVY, hG, hM, hB, hR=false, hT=false;
+function startHit(){ curLvl=1; curCombo=0; updateHitUI(); updateBg(1); show('hitScreen'); startTimer('hitTime', endHit); serveHit(); }
+function serveHit(){ if(timeLeft<=0) return; hB=0; hT=false; hR=true; document.getElementById('fbHit').textContent=''; hX=20; hY=(curLvl>=7)?220:160; hVX=3+curLvl*0.7; if(curLvl>=7) hVX*=0.9; if(curLvl<=4){hVY=-4+curLvl*0.5; hM=0;} else {hVY=(curLvl>=7)?0:-1; hM=0.01+(curLvl-5)*0.015;} hG=(curLvl<3)?0.3:0.6; requestAnimationFrame(hitLoop); }
+document.getElementById('hitBall').addEventListener('pointerdown',()=>{ if(hB===1&&!hT&&hR){ hT=true; hR=false; const fb=document.getElementById('fbHit'); fb.textContent='〇'; fb.style.color='#0f9'; curCombo++; if(curCombo>=5){curLvl++;curCombo=0;updateBg(curLvl);} updateHitUI(); setTimeout(serveHit,600); } });
+function hitLoop(){
+  if(!hR||timeLeft<=0) return; hVY+=hG+hM; hX+=hVX; hY+=hVY; if(hY+24>=360&&hVY>0){ hY=360-24; hVY=-hVY*0.8; hB++; if(hB>=2){ hR=false; const fb=document.getElementById('fbHit'); fb.textContent='✖'; fb.style.color='#f33'; curCombo=0; updateHitUI(); setTimeout(serveHit,600); return; } }
+  if(hX>380){ hR=false; if(!hT){ document.getElementById('fbHit').textContent='✖'; document.getElementById('fbHit').style.color='#f33'; curCombo=0; updateHitUI(); } setTimeout(serveHit,400); return; }
+  document.getElementById('hitBall').style.transform=`translate(${hX-24}px,${hY-24}px)`; requestAnimationFrame(hitLoop);
+}
+function updateHitUI(){ document.getElementById('hitScore').textContent=`${curLvl}.${curCombo}`; }
+function endHit(){ hR=false; clearInterval(gameTimer); finish(); }
+
+/* 4. SIDE SPIN (Curve Power Optimized) */
+let sideX, sideY, sideEX, sideEY, sideSpin, sideAnsw=false, sideRunning=false, sideCorrectCol=0;
+const sideBall=document.getElementById('sideBall'), sideAnim=document.getElementById('sideSpinAnim'), sideW=document.getElementById('sideWrapper');
+const curvePower = 42; // 元の70から40%減
+
+for(let c=0;c<3;c++){
+  const col=document.createElement('div'); col.className='side-btn-col';
+  ['left','center','right'].forEach(t=>{
+    const b=document.createElement('div'); b.className='side-btn'; b.dataset.c=c; b.dataset.t=t;
+    const l=document.createElement('div'); l.className='angle-bar angle-'+t; b.appendChild(l);
+    b.onclick=()=>judgeSide(b); col.appendChild(b);
   });
-  document.getElementById("buttons").appendChild(colDiv);
+  document.getElementById('sideBtns').appendChild(col);
 }
-
-/* タイマー */
-const timerId = setInterval(() => {
-  if(!gameActive) return;
-  timeLeft--;
-  document.getElementById("timeDisp").textContent = timeLeft;
-  if(timeLeft <= 0) {
-    gameActive = false;
-    clearInterval(timerId);
-    alert("修行終了！ スコア: " + currentLvl + "." + currentCombo);
-    location.reload();
+function startSide(){ curLvl=1; curCombo=0; updateSideUI(); updateBg(1); show('sideScreen'); startTimer('sideTime', endSide); serveSide(); }
+function serveSide(){
+  if(timeLeft<=0) return; sideAnsw=false; sideRunning=true; document.getElementById('fbSide').textContent='';
+  const w=sideW.clientWidth, base=(w-220)/2, cols=[base+30, w/2, base+220-30];
+  const startIdx=Math.floor(Math.random()*3);
+  const endIdx=Math.floor(Math.random()*3);
+  sideCorrectCol=endIdx; sideSpin=Math.floor(Math.random()*3); // 0:CCW, 1:None, 2:CW
+  sideX=cols[startIdx]; sideY=20; sideEX=cols[endIdx]; sideEY=330;
+  sideAnim.style.display=(sideSpin===1)?'none':'block'; sideAnim.className='spin-anim '+(sideSpin===0?'ccw':'cw');
+  sideAnim.style.left=sideX+'px'; sideAnim.style.top=sideY+'px';
+  const startT=performance.now(), dur=sideSpeedSettings[Math.min(curLvl-1,7)];
+  function anim(t){
+    if(!sideRunning||timeLeft<=0) return; const p=Math.min((t-startT)/dur,1);
+    const x=sideX+(sideEX-sideX)*p + Math.sin(p*Math.PI)*curvePower*(sideSpin===0?-1:sideSpin===2?1:0);
+    const y=sideY+(sideEY-sideY)*p; sideBall.style.left=x+'px'; sideBall.style.top=y+'px';
+    if(p<1 && !sideAnsw) requestAnimationFrame(anim); else if(p>=1 && !sideAnsw) judgeSide(null);
   }
-}, 1000);
-
-function curveOffset(p, spin){
-  if(spin === 1) return 0;
-  const dir = (spin === 0) ? -1 : 1;
-  return Math.sin(p * Math.PI) * curvePower * dir;
+  requestAnimationFrame(anim);
 }
-
-function launchBall(){
-  if(!gameActive) return;
-  isAnswered = false;
-  document.getElementById("feedback").textContent = "";
-  
-  const w = wrapper.clientWidth;
-  const courtW = 220; // 台の幅
-  const baseLeft = (w - courtW) / 2;
-  
-  // 台の幅に合わせてスタート位置を調整
-  const startCols = [baseLeft + 30, w/2, baseLeft + courtW - 30];
-
-  const startCol = Math.floor(Math.random()*3);
-  const spin = Math.floor(Math.random()*3);
-
-  correctCol = startCol;
-  correctSpin = spin;
-
-  const startX = startCols[startCol];
-  const startY = 20;
-  const endY = 360;
-
-  spinArrow.style.display = spin === 1 ? "none" : "block";
-  spinArrow.className = "spin-arrow " + (spin === 0 ? "ccw" : "cw");
-  spinArrow.style.left = startX + "px";
-  spinArrow.style.top = startY + "px";
-
-  const startTime = performance.now();
-  const duration = speedSettings[Math.min(currentLvl-1, speedSettings.length-1)];
-
-  function animate(t){
-    if(!gameActive) return;
-    const p = Math.min((t - startTime) / duration, 1);
-    const x = startX + curveOffset(p, spin);
-    const y = startY + (endY - startY) * p;
-
-    ball.style.left = x + "px";
-    ball.style.top = y + "px";
-
-    if(p < 1 && !isAnswered) {
-      requestAnimationFrame(animate);
-    } else if (p >= 1 && !isAnswered) {
-      judge(null);
-    }
-  }
-  requestAnimationFrame(animate);
-}
-
-function judge(btn){
-  if(isAnswered || !gameActive) return;
-  isAnswered = true;
-  
-  const fb = document.getElementById("feedback");
-  const spinType = correctSpin === 0 ? "right" : correctSpin === 1 ? "center" : "left";
-
-  if(btn && Number(btn.dataset.col) === correctCol && btn.dataset.type === spinType){
-    btn.classList.add("correct");
-    fb.textContent = "〇"; fb.style.color = "#0f9";
-    currentCombo++;
-    if(currentCombo >= 5) { currentLvl++; currentCombo = 0; }
+function judgeSide(b){
+  if(sideAnsw||timeLeft<=0) return; sideAnsw=true; const fb=document.getElementById('fbSide');
+  const type=(sideSpin===0)?'right':(sideSpin===1)?'center':'left';
+  if(b && Number(b.dataset.c)===sideCorrectCol && b.dataset.t===type){
+    b.classList.add('correct'); fb.textContent='〇'; fb.style.color='#0f9'; curCombo++; if(curCombo>=5){curLvl++;curCombo=0;updateBg(curLvl);}
   } else {
-    if(btn) btn.classList.add("wrong");
-    fb.textContent = "✖"; fb.style.color = "#f33";
-    currentCombo = 0;
+    if(b) b.classList.add('wrong'); fb.textContent='✖'; fb.style.color='#f33'; curCombo=0;
   }
-
-  document.getElementById("scoreDisp").textContent = currentLvl + "." + currentCombo;
-  
-  setTimeout(()=>{
-    document.querySelectorAll(".btn").forEach(b=>b.classList.remove("correct","wrong"));
-    if(gameActive) launchBall();
-  }, 600);
+  updateSideUI(); setTimeout(()=>{ document.querySelectorAll('.side-btn').forEach(btn=>btn.classList.remove('correct','wrong')); if(timeLeft>0) serveSide(); },600);
 }
+function updateSideUI(){ document.getElementById('sideScore').textContent=`${curLvl}.${curCombo}`; }
+function endSide(){ sideRunning=false; clearInterval(gameTimer); finish(); }
 
-launchBall();
+/* FINISH */
+function finish(){ document.getElementById('finalScore').textContent=`${curLvl}.${curCombo}`; show('endScreen'); }
+function backTop(){ updateBg(1); show('topScreen'); }
 </script>
 </body>
 </html>
