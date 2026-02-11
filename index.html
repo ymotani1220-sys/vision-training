@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>横回転判断トレーニング</title>
+<title>横回転判断トレーニング - 60秒集中ver</title>
 
 <style>
 body{
@@ -23,13 +23,13 @@ body{
 .info-panel {
   width: 100%;
   max-width: 400px;
-  padding: 10px;
+  padding: 15px 10px;
   display: flex;
   justify-content: space-around;
-  font-size: 20px;
+  font-size: 22px;
   text-align: center;
 }
-.score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
+.score-highlight { font-size: 32px; color: #ffeb3b; font-weight: bold; }
 
 /* ===== コートエリア ===== */
 .court-wrapper{
@@ -52,7 +52,7 @@ body{
 }
 
 .line{ position:absolute; background:#fff; }
-.centerline{ left:50%; top:0; width:2px; height:100%; transform:translateX(-50%); opacity: 0.7; }
+.centerline{ left:50%; top:0; width:2px; height:100%; transform:translateX(-50%); opacity: 0.6; }
 .net{
   position:absolute; top:50%; left:0; width:100%; height:4px;
   background:rgba(255,255,255,0.8); z-index:2; box-shadow: 0 0 10px rgba(255,255,255,0.5);
@@ -78,7 +78,7 @@ body{
   border-radius:50%;
   display:none;
   z-index: 5;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 .spin-arrow.ccw{ border-right-color:transparent; animation: spin-ccw 0.5s linear infinite; }
 .spin-arrow.cw{ border-left-color:transparent; animation: spin-cw 0.5s linear infinite; }
@@ -89,7 +89,7 @@ body{
 /* ===== 判断ボタンエリア ===== */
 .buttons-container {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   margin-top: 5px;
 }
 
@@ -99,44 +99,45 @@ body{
   gap:8px;
   background: rgba(255,255,255,0.05);
   padding: 8px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .btn{
-  width:80px;
-  height:40px;
+  width:85px;
+  height:45px;
   background:#444;
-  border-radius:20px;
+  border-radius:22px;
   border:2px solid #fff;
   position:relative;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: transform 0.1s;
 }
+.btn:active { transform: scale(0.95); }
 
-.btn.correct{background:#0f9; box-shadow: 0 0 15px #0f9;}
-.btn.wrong{background:#f33; box-shadow: 0 0 15px #f33;}
+.btn.correct{background:#0f9 !important; box-shadow: 0 0 15px #0f9;}
+.btn.wrong{background:#f33 !important; box-shadow: 0 0 15px #f33;}
 
 .angle-line{
-  width:30px;
-  height:4px;
+  width:32px;
+  height:5px;
   background:#fff;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 .angle-left{ transform: rotate(-25deg); }
 .angle-center{ transform: rotate(0deg); }
 .angle-right{ transform: rotate(25deg); }
 
-#feedback { font-size: 40px; height: 45px; font-weight: bold; margin-bottom: 5px; }
-
+#feedback { font-size: 45px; height: 50px; font-weight: bold; margin-bottom: 5px; }
 </style>
 </head>
 
 <body>
 
 <div class="info-panel">
-  <div>⏱ <span id="timeDisp">30</span></div>
+  <div>⏱ <span id="timeDisp">60</span></div>
   <div>スコア：<span id="scoreDisp" class="score-highlight">1.0</span></div>
 </div>
 
@@ -154,23 +155,25 @@ body{
 <div class="buttons-container" id="buttons"></div>
 
 <script>
-/* 共通変数 */
+/* --- ゲーム設定 --- */
 let currentLvl = 1;
 let currentCombo = 0;
-let timeLeft = 30;
+let timeLeft = 60;
 let correctCol = 0;
 let correctSpin = 1;
 let isAnswered = false;
+let gameActive = true;
 
-const speedSettings = [2500, 2200, 1900, 1600, 1300, 1000, 800];
-const curvePower = 80;
+// レベルごとの球の表示時間（ms）
+// Lv1: 2.5s, Lv2: 2.2s, Lv3: 1.9s, Lv4: 1.6s, Lv5: 1.3s, Lv6: 1.1s, Lv7: 0.9s, Lv8+: 0.8s
+const speedSettings = [2500, 2200, 1900, 1600, 1300, 1100, 900, 800];
+const curvePower = 85;
 
 const ball = document.getElementById("ball");
 const spinArrow = document.getElementById("spinArrow");
 const wrapper = document.getElementById("wrapper");
 
 /* ===== ボタン生成 ===== */
-const btnLabels = ["左コース", "中央", "右コース"];
 for(let col=0; col<3; col++){
   const colDiv=document.createElement("div");
   colDiv.className="btn-col";
@@ -191,13 +194,15 @@ for(let col=0; col<3; col++){
   document.getElementById("buttons").appendChild(colDiv);
 }
 
-/* タイマー */
+/* タイマー処理 */
 const timerId = setInterval(() => {
+  if(!gameActive) return;
   timeLeft--;
   document.getElementById("timeDisp").textContent = timeLeft;
   if(timeLeft <= 0) {
+    gameActive = false;
     clearInterval(timerId);
-    alert("終了！ スコア: " + currentLvl + "." + currentCombo);
+    alert("修行終了！ 最終スコア: " + currentLvl + "." + currentCombo);
     location.reload();
   }
 }, 1000);
@@ -205,27 +210,27 @@ const timerId = setInterval(() => {
 function curveOffset(p, spin){
   if(spin === 1) return 0;
   const dir = (spin === 0) ? -1 : 1;
+  // サインカーブで曲がりを表現
   return Math.sin(p * Math.PI) * curvePower * dir;
 }
 
 function launchBall(){
+  if(!gameActive) return;
   isAnswered = false;
   document.getElementById("feedback").textContent = "";
   
   const w = wrapper.clientWidth;
-  const cW = 280;
-  const baseLeft = (w - cW) / 2;
-  const startCols = [baseLeft + 40, w/2, baseLeft + cW - 40];
+  const startCols = [60, w/2, w - 60];
 
   const startCol = Math.floor(Math.random()*3);
-  const spin = Math.floor(Math.random()*3);
+  const spin = Math.floor(Math.random()*3); // 0:左回転(右へ曲がる), 1:無回転, 2:右回転(左へ曲がる)
 
   correctCol = startCol;
   correctSpin = spin;
 
   const startX = startCols[startCol];
-  const startY = 20;
-  const endY = 380;
+  const startY = 30;
+  const endY = 370;
 
   spinArrow.style.display = spin === 1 ? "none" : "block";
   spinArrow.className = "spin-arrow " + (spin === 0 ? "ccw" : "cw");
@@ -233,29 +238,33 @@ function launchBall(){
   spinArrow.style.top = startY + "px";
 
   const startTime = performance.now();
-  const currentSpeed = speedSettings[Math.min(currentLvl-1, 6)];
+  // 現在のレベルに応じた速度を取得
+  const duration = speedSettings[Math.min(currentLvl-1, speedSettings.length-1)];
 
   function animate(t){
-    const p = Math.min((t - startTime) / currentSpeed, 1);
+    if(!gameActive) return;
+    const p = Math.min((t - startTime) / duration, 1);
     const x = startX + curveOffset(p, spin);
     const y = startY + (endY - startY) * p;
 
     ball.style.left = x + "px";
     ball.style.top = y + "px";
 
-    if(p < 1) requestAnimationFrame(animate);
-    else {
-      if(!isAnswered) judge(null); // 時間切れ
+    if(p < 1 && !isAnswered) {
+      requestAnimationFrame(animate);
+    } else if (p >= 1 && !isAnswered) {
+      judge(null); // 時間切れミス
     }
   }
   requestAnimationFrame(animate);
 }
 
 function judge(btn){
-  if(isAnswered) return;
+  if(isAnswered || !gameActive) return;
   isAnswered = true;
   
   const fb = document.getElementById("feedback");
+  // spin 0(CCW)=ball曲がるのは右, btn選択は'right' / spin 2(CW)=ball曲がるのは左, btn選択は'left'
   const spinType = correctSpin === 0 ? "right" : correctSpin === 1 ? "center" : "left";
 
   if(btn && Number(btn.dataset.col) === correctCol && btn.dataset.type === spinType){
@@ -273,8 +282,8 @@ function judge(btn){
   
   setTimeout(()=>{
     document.querySelectorAll(".btn").forEach(b=>b.classList.remove("correct","wrong"));
-    launchBall();
-  }, 800);
+    if(gameActive) launchBall();
+  }, 600);
 }
 
 launchBall();
