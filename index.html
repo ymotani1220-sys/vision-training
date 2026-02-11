@@ -1,125 +1,132 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>横回転判断ゲーム（単体版）</title>
+
 <style>
   body {
     margin: 0;
+    background: #1e1e1e;
     font-family: sans-serif;
-    background: #0b5c2d;
     color: #fff;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
 
-  .info {
+  .top-bar {
+    width: 100%;
+    max-width: 420px;
     display: flex;
-    gap: 30px;
-    margin: 10px 0;
-    font-size: 18px;
+    justify-content: space-between;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    font-size: 16px;
   }
 
   .court-wrapper {
     position: relative;
-    width: 320px;
+    width: 360px;
     height: 520px;
-    background: #1e7f43;
-    border: 4px solid #fff;
+    margin-top: 8px;
+  }
+
+  .court {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 360px;
+    height: 440px;
+    background: #1c6b3c;
     box-sizing: border-box;
   }
 
-  /* 卓球台ライン */
-  .sideline {
+  .line {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: #fff;
-  }
-  .sideline.left { left: 30px; }
-  .sideline.right { right: 30px; }
-
-  .endline.top {
-    position: absolute;
-    top: 30px;
-    left: 30px;
-    right: 30px;
-    height: 4px;
-    background: #fff;
-  }
-  .endline.bottom {
-    position: absolute;
-    bottom: 30px;
-    left: 30px;
-    right: 30px;
-    height: 4px;
     background: #fff;
   }
 
+  .sideline.left { left: 0; top: 0; width: 3px; height: 100%; }
+  .sideline.right { right: 0; top: 0; width: 3px; height: 100%; }
+  .endline.top { top: 0; left: 0; height: 3px; width: 100%; }
+  .endline.bottom { bottom: 0; left: 0; height: 3px; width: 100%; }
   .centerline {
-    position: absolute;
-    top: 30px;
-    bottom: 30px;
     left: 50%;
-    width: 4px;
-    background: #fff;
+    top: 0;
+    width: 3px;
+    height: 100%;
     transform: translateX(-50%);
   }
-
   .net {
-    position: absolute;
     top: 50%;
-    left: 30px;
-    right: 30px;
-    height: 4px;
+    left: 0;
+    width: 100%;
+    height: 3px;
     background: #ddd;
   }
 
-  /* 回転予測矢印 */
-  .spin-indicator {
-    position: absolute;
-    font-size: 48px;
-    font-weight: bold;
-    display: none;
-    transform: translate(-50%, -50%);
-  }
-
-  /* ボール */
   .ball {
     position: absolute;
-    width: 24px;
-    height: 24px;
-    background: #fff;
+    width: 20px;
+    height: 20px;
+    background: #ffcc00;
     border-radius: 50%;
     transform: translate(-50%, -50%);
+  }
+
+  .spin-arrow {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 6px solid #ff5555;
+    border-radius: 50%;
     display: none;
   }
 
-  /* ボタン */
+  .spin-arrow.ccw {
+    border-right-color: transparent;
+  }
+  .spin-arrow.cw {
+    border-left-color: transparent;
+  }
+
   .buttons {
+    width: 360px;
+    margin-top: 8px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    margin: 10px 0 5px;
+    row-gap: 6px;
+  }
+
+  .btn-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
   }
 
   .btn {
-    width: 90px;
-    height: 40px;
-    border-radius: 20px;
+    width: 80px;
+    height: 36px;
     background: #333;
+    border-radius: 50%;
     position: relative;
-    border: none;
+    border: 2px solid #777;
   }
 
-  .btn.correct { background: #2ecc71; }
-  .btn.wrong { background: #e74c3c; }
+  .btn.correct {
+    background: #2ecc71;
+  }
 
-  .angle {
+  .btn.wrong {
+    background: #e74c3c;
+  }
+
+  .angle-line {
     position: absolute;
-    width: 30px;
+    width: 36px;
     height: 3px;
     background: #fff;
     top: 50%;
@@ -127,147 +134,173 @@
     transform-origin: center;
   }
 
-  .left  { transform: translate(-50%, -50%) rotate(-30deg); }
-  .flat  { transform: translate(-50%, -50%) rotate(0deg); }
-  .right { transform: translate(-50%, -50%) rotate(30deg); }
+  .angle-left { transform: translate(-50%, -50%) rotate(-25deg); }
+  .angle-center { transform: translate(-50%, -50%) rotate(0deg); }
+  .angle-right { transform: translate(-50%, -50%) rotate(25deg); }
+
 </style>
 </head>
+
 <body>
 
-<div class="info">
+<div class="top-bar">
   <div>TIME: <span id="time">30</span></div>
   <div>SCORE: <span id="score">0</span></div>
 </div>
 
-<div class="court-wrapper" id="court">
-  <div class="sideline left"></div>
-  <div class="sideline right"></div>
-  <div class="endline top"></div>
-  <div class="endline bottom"></div>
-  <div class="centerline"></div>
-  <div class="net"></div>
+<div class="court-wrapper">
+  <div class="spin-arrow" id="spinArrow"></div>
 
-  <div class="spin-indicator" id="spinArrow">⟲</div>
-  <div class="ball" id="ball"></div>
+  <div class="court">
+    <div class="line sideline left"></div>
+    <div class="line sideline right"></div>
+    <div class="line endline top"></div>
+    <div class="line endline bottom"></div>
+    <div class="line centerline"></div>
+    <div class="net"></div>
+
+    <div class="ball" id="ball"></div>
+  </div>
 </div>
 
 <div class="buttons" id="buttons"></div>
 
 <script>
-const court = document.getElementById("court");
+/* ===== 設定 ===== */
+const courtWidth = 360;
+const courtHeight = 440;
+
+const ballSize = 20;
+const travelTime = 2000;   // レベル1：遅め
+const curvePower = 80;
+
+/*
+spin:
+0 = 反時計回り → プレイヤー目線で右に曲がる
+1 = 直進
+2 = 時計回り → プレイヤー目線で左に曲がる
+*/
+
+/* ===== DOM ===== */
 const ball = document.getElementById("ball");
-const arrow = document.getElementById("spinArrow");
+const spinArrow = document.getElementById("spinArrow");
 const buttons = document.getElementById("buttons");
 
-const COURT_LEFT = 30;
-const COURT_RIGHT = 290;
-const TOP_Y = 60;
-const BOTTOM_Y = 460;
+/* ===== ボタン生成 ===== */
+const spins = ["left", "center", "right"];
 
-const BALL_R = 12;
+for (let col = 0; col < 3; col++) {
+  const colDiv = document.createElement("div");
+  colDiv.className = "btn-col";
 
-let correct = {};
+  ["left", "center", "right"].forEach(type => {
+    const btn = document.createElement("div");
+    btn.className = "btn";
+    btn.dataset.col = col;
+    btn.dataset.type = type;
 
-function createButtons(){
-  buttons.innerHTML = "";
-  const spins = ["left","flat","right"];
+    const line = document.createElement("div");
+    line.className = "angle-line angle-" + type;
+    btn.appendChild(line);
 
-  ["fore","middle","back"].forEach(course=>{
-    spins.forEach(sp=>{
-      const b = document.createElement("button");
-      b.className = "btn";
-      const line = document.createElement("div");
-      line.className = "angle " + sp;
-      b.appendChild(line);
-
-      b.onclick = ()=>{
-        if(correct.course === course && correct.spin === sp){
-          b.classList.add("correct");
-        } else {
-          b.classList.add("wrong");
-        }
-      };
-      buttons.appendChild(b);
-    });
+    btn.onclick = () => judge(btn);
+    colDiv.appendChild(btn);
   });
+
+  buttons.appendChild(colDiv);
 }
 
-function getStartX(course){
-  if(course === "fore") return COURT_LEFT + BALL_R;
-  if(course === "middle") return (COURT_LEFT + COURT_RIGHT)/2;
-  return COURT_RIGHT - BALL_R;
-}
+/* ===== 曲がり計算（★ここだけ修正） ===== */
+function curveOffset(p, spin) {
+  if (spin === 1) return 0;
 
-function getTargetX(course){
-  if(course === "fore") return COURT_LEFT + BALL_R;
-  if(course === "middle") return (COURT_LEFT + COURT_RIGHT)/2;
-  return COURT_RIGHT - BALL_R;
-}
-
-/* ★ 曲がり方向修正済み ★
-   spin:
-   0 = 反時計回り → 右に曲がる
-   1 = 直進
-   2 = 時計回り → 左に曲がる
-*/
-function curveOffset(p, spin){
-  if(spin === 1) return 0;
-
-  // ← ここが修正点（符号反転）
+  // ★ 符号を反転（ここが今回の修正点）
   const dir = (spin === 0) ? -1 : 1;
 
-  const curvePower = 40;
   return Math.sin(p * Math.PI) * curvePower * dir;
 }
 
-function launchBall(){
-  const courses = ["fore","middle","back"];
-  const spins = [0,1,2];
+/* ===== ボール発射 ===== */
+let correctCol = 0;
+let correctSpin = 1;
 
-  const course = courses[Math.floor(Math.random()*3)];
-  const spin = spins[Math.floor(Math.random()*3)];
+function launchBall() {
+  const startCols = [
+    ballSize,
+    courtWidth / 2,
+    courtWidth - ballSize
+  ];
 
-  correct = {
-    course,
-    spin: spin === 0 ? "right" : spin === 2 ? "left" : "flat"
-  };
+  const endCols = [
+    ballSize,
+    courtWidth / 2,
+    courtWidth - ballSize
+  ];
 
-  const startX = getStartX(course);
-  const targetX = getTargetX(course);
+  const startCol = Math.floor(Math.random() * 3);
+  const spin = Math.floor(Math.random() * 3);
 
-  const startY = TOP_Y;
-  const endY = BOTTOM_Y;
+  correctCol = startCol;
+  correctSpin = spin;
 
-  ball.style.display = "block";
-  arrow.style.display = "block";
+  const startX = startCols[startCol];
+  const startY = 40;
+  const endX = endCols[startCol];
+  const endY = courtHeight - 20;
 
-  arrow.textContent = spin === 0 ? "⟲" : spin === 2 ? "⟳" : "";
-  arrow.style.left = startX + "px";
-  arrow.style.top = (startY - 30) + "px";
+  ball.style.left = startX + "px";
+  ball.style.top = startY + "px";
 
-  let t = 0;
-  const duration = 3000;
+  // 矢印
+  spinArrow.style.display = spin === 1 ? "none" : "block";
+  spinArrow.className = "spin-arrow " + (spin === 0 ? "ccw" : "cw");
+  spinArrow.style.left = startX + "px";
+  spinArrow.style.top = (startY - 50) + "px";
 
-  const timer = setInterval(()=>{
-    t += 16;
-    const p = Math.min(t/duration,1);
+  const startTime = performance.now();
 
-    const x = startX + (targetX-startX)*p + curveOffset(p,spin);
-    const y = startY + (endY-startY)*p;
+  function animate(t) {
+    const p = Math.min((t - startTime) / travelTime, 1);
+    const x = startX + (endX - startX) * p + curveOffset(p, spin);
+    const y = startY + (endY - startY) * p;
 
     ball.style.left = x + "px";
     ball.style.top = y + "px";
 
-    if(p >= 1){
-      clearInterval(timer);
-      arrow.style.display = "none";
-    }
-  },16);
+    if (p < 1) requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
 }
 
-createButtons();
-launchBall();
-</script>
+/* ===== 判定 ===== */
+function judge(btn) {
+  const col = Number(btn.dataset.col);
+  const type = btn.dataset.type;
 
+  const spinType =
+    correctSpin === 0 ? "right" :
+    correctSpin === 1 ? "center" : "left";
+
+  if (col === correctCol && type === spinType) {
+    btn.classList.add("correct");
+  } else {
+    btn.classList.add("wrong");
+  }
+
+  setTimeout(resetButtons, 400);
+}
+
+function resetButtons() {
+  document.querySelectorAll(".btn").forEach(b => {
+    b.classList.remove("correct", "wrong");
+  });
+}
+
+/* ===== 開始 ===== */
+launchBall();
+setInterval(launchBall, 3000);
+
+</script>
 </body>
 </html>
