@@ -33,7 +33,7 @@ body{
 /* ===== 卓球台 ===== */
 #table-wrap{
   position:relative;
-  height:440px;
+  height:460px;
 }
 
 #table{
@@ -42,7 +42,7 @@ body{
   top:60px;
   transform:translateX(-50%);
   width:230px;
-  height:380px;
+  height:400px;
   background:#1565c0;
   border:4px solid #fff;
   box-sizing:border-box;
@@ -80,7 +80,7 @@ body{
 /* ===== 回転矢印 ===== */
 .spin-arrow{
   position:absolute;
-  font-size:80px;     /* ← 直径2倍 */
+  font-size:80px;
   font-weight:bold;
   color:#ffeb3b;
 }
@@ -169,6 +169,8 @@ let score = 0;
 let correctSpin = 0;
 let arrivalCourse = 1;
 
+const BALL_SIZE = 24;
+
 /*
 spin（プレイヤー目線）
 0 = 反時計回り ⟲ → 右に曲がる
@@ -178,8 +180,8 @@ spin（プレイヤー目線）
 
 const spinMap = { left:2, straight:1, right:0 };
 
-/* ボタン生成 */
-["left","middle","right"].forEach((_,col)=>{
+/* ===== ボタン生成 ===== */
+["fore","middle","back"].forEach((_,col)=>{
   const c=document.createElement("div");
   c.className="col";
   ["left","straight","right"].forEach(a=>{
@@ -193,15 +195,26 @@ const spinMap = { left:2, straight:1, right:0 };
   buttons.appendChild(c);
 });
 
-const serveX = [
-  table.offsetLeft + 20,
-  table.offsetLeft + table.offsetWidth/2 - 12,
-  table.offsetLeft + table.offsetWidth - 44
-];
+/* ===== 打ち出しX座標（回転に依存しない） ===== */
+function getServeX(course){
+  const left = table.offsetLeft;
+  const width = table.offsetWidth;
+
+  if(course === 0){
+    // フォア：サイドラインからボール1個分内側
+    return left + BALL_SIZE;
+  }
+  if(course === 1){
+    // ミドル：センターライン
+    return left + width / 2 - BALL_SIZE / 2;
+  }
+  // バック：反対側サイドラインからボール1個分内側
+  return left + width - BALL_SIZE * 2;
+}
 
 function calcArrival(start, spin){
-  if(spin===0) return Math.min(2,start+1);
-  if(spin===2) return Math.max(0,start-1);
+  if(spin===0) return Math.min(2,start+1); // 右へ
+  if(spin===2) return Math.max(0,start-1); // 左へ
   return start;
 }
 
@@ -210,33 +223,34 @@ function showArrow(x,y,spin){
   const a=document.createElement("div");
   a.className="spin-arrow";
   a.textContent= spin===0 ? "⟲" : "⟳";
-  a.style.left=x-30+"px";
-  a.style.top=y-70+"px";
+  a.style.left = x - 28 + "px";
+  a.style.top = y - 80 + "px";
   game.appendChild(a);
   setTimeout(()=>a.remove(),1000);
 }
 
 function serve(){
   clearJudges();
-  const start=Math.floor(Math.random()*3);
-  correctSpin=Math.floor(Math.random()*3);
-  arrivalCourse=calcArrival(start,correctSpin);
 
-  let x=serveX[start];
-  let y=table.offsetTop+10;
+  const start = Math.floor(Math.random()*3);
+  correctSpin = Math.floor(Math.random()*3);
+  arrivalCourse = calcArrival(start, correctSpin);
+
+  let x = getServeX(start);
+  let y = table.offsetTop + 10;
+
   ball.style.display="block";
-
   showArrow(x,y,correctSpin);
 
-  const curve=[2,0,-2][correctSpin];
+  const curve = [2,0,-2][correctSpin];
 
-  const timer=setInterval(()=>{
-    y+=2;
-    x+=curve;
-    ball.style.left=x+"px";
-    ball.style.top=y+"px";
+  const timer = setInterval(()=>{
+    y += 2;
+    x += curve;
+    ball.style.left = x + "px";
+    ball.style.top = y + "px";
 
-    if(y>table.offsetTop+table.offsetHeight-30){
+    if(y > table.offsetTop + table.offsetHeight - 30){
       clearInterval(timer);
       ball.style.display="none";
       setTimeout(serve,800);
@@ -245,19 +259,19 @@ function serve(){
 }
 
 function judge(btn){
-  if(Number(btn.dataset.col)!==arrivalCourse) return;
+  if(Number(btn.dataset.col) !== arrivalCourse) return;
 
-  const spin=spinMap[btn.dataset.angle];
-  const j=document.createElement("div");
-  j.className="judge";
+  const spin = spinMap[btn.dataset.angle];
+  const j = document.createElement("div");
+  j.className = "judge";
 
-  if(spin===correctSpin){
-    j.textContent="○";
+  if(spin === correctSpin){
+    j.textContent = "○";
     j.classList.add("correct");
-    score+=10;
-    scoreEl.textContent="SCORE "+score;
+    score += 10;
+    scoreEl.textContent = "SCORE " + score;
   }else{
-    j.textContent="×";
+    j.textContent = "×";
     j.classList.add("wrong");
   }
   btn.appendChild(j);
