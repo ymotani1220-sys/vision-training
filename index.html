@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卓球総合トレーニング - 四神完全版</title>
+<title>卓球総合トレーニング - 完全調和ver</title>
 
 <style>
 body{
@@ -22,15 +22,20 @@ button{font-size:20px; padding:16px 28px; margin:10px; cursor:pointer; border-ra
 .info-panel { font-size: 20px; margin-bottom: 10px; text-align: center; line-height: 1.5; z-index: 10; }
 .score-highlight { font-size: 28px; color: #ffeb3b; font-weight: bold; }
 
-/* ===== 1. 回転判断 ===== */
+/* ===== 1. 回転判断 (座標補正済み) ===== */
 #spinGame{position:relative; width:320px; height:320px}
 #spinCenter{
-  position:absolute; top:50%; left:50%; width:80px; height:80px; transform:translate(-50%, -50%);
+  position:absolute; top:50%; left:50%; width:80px; height:80px; 
+  transform:translate(-50%, -50%); /* 自身のサイズ分戻して中央へ */
   border-radius:50%; background:#fff; display:flex; justify-content:center; align-items:center;
   box-shadow: 0 0 15px rgba(255,255,255,0.5); z-index: 5;
 }
 #spinArrow{ font-size:50px; font-weight:900; color:#f33; transition: transform 0.15s ease-out, opacity 0.1s ease-in; }
-.spin-btn{ position:absolute; width:56px; height:56px; border-radius:50%; background:#444; border:3px solid #fff; z-index: 6; }
+.spin-btn{ 
+  position:absolute; width:56px; height:56px; border-radius:50%; 
+  background:#444; border:3px solid #fff; z-index: 6;
+  padding: 0; margin: 0; display: flex; justify-content: center; align-items: center;
+}
 .spin-btn.active{background:#0f9; box-shadow: 0 0 20px #0f9;}
 
 /* ===== 2. 瞬間判断 ===== */
@@ -127,12 +132,20 @@ function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.a
 function updateBg(l){ document.body.style.background=bgColors[Math.min(l-1,8)]; }
 function startTimer(id, endF){ timeLeft=60; document.getElementById(id).textContent=timeLeft; if(gameTimer) clearInterval(gameTimer); gameTimer=setInterval(()=>{ timeLeft--; document.getElementById(id).textContent=timeLeft; if(timeLeft<=0) endF(); },1000); }
 
-/* 1. SPIN */
+/* 1. SPIN - 座標調整版 */
 const sAngs=[-90,-45,0,45,90,135,180,225], sRackets=[];
 const sArea=document.getElementById('spinGame');
 sAngs.forEach((a,i)=>{
   const b=document.createElement('button'); b.className='spin-btn';
-  b.style.left=(160+120*Math.cos(a*Math.PI/180)-28)+'px'; b.style.top=(160+120*Math.sin(a*Math.PI/180)-28)+'px';
+  // ★重要: ゲームエリアの中心(160, 160)から、ボタンの半径(28)を引いて中心を合わせる
+  const radius = 120;
+  const centerX = 160;
+  const centerY = 160;
+  const btnOffset = 28; // ボタン幅56pxの半分
+
+  b.style.left=(centerX + radius * Math.cos(a * Math.PI / 180) - btnOffset) + 'px';
+  b.style.top =(centerY + radius * Math.sin(a * Math.PI / 180) - btnOffset) + 'px';
+  
   b.onclick=()=>judgeSpin(i===correctIdx); sRackets.push(b); sArea.appendChild(b);
 });
 let correctIdx=0, answeredS=false, sNextT=null;
@@ -145,7 +158,8 @@ function judgeSpin(ok){ if(answeredS||timeLeft<=0) return; answeredS=true; clear
 function updateSpinUI(){ document.getElementById('spinScore').textContent=`${curLvl}.${curCombo}`; }
 function endSpin(){ clearInterval(gameTimer); clearTimeout(sNextT); finish(); }
 
-/* 2. FLASH */
+/* 2. FLASH, 3. HIT, 4. SIDE SPIN (ロジックは前の回答と同じなので略さず統合) */
+// --- 2. FLASH ---
 let fNextT=null, fDir='', answeredF=false;
 function startFlash(){ curLvl=1; curCombo=0; updateFlashUI(); updateBg(1); show('flashScreen'); startTimer('flashTime', endFlash); nextFlash(); }
 function nextFlash(){ if(timeLeft<=0) return; answeredF=false; document.getElementById('fbFlash').textContent=''; fDir=['left','up','right'][Math.floor(Math.random()*3)]; const icons={left:'←',up:'↑',right:'→'}; document.getElementById('flashArrow').textContent=icons[fDir]; if(fNextT) clearTimeout(fNextT); fNextT=setTimeout(()=>judgeFlash(null), speedSettings[Math.min(curLvl-1,7)]); }
@@ -154,7 +168,7 @@ function judgeFlash(ok){ if(answeredF||timeLeft<=0) return; answeredF=true; clea
 function updateFlashUI(){ document.getElementById('flashScore').textContent=`${curLvl}.${curCombo}`; }
 function endFlash(){ clearInterval(gameTimer); clearTimeout(fNextT); finish(); }
 
-/* 3. HIT */
+// --- 3. HIT ---
 let hX, hY, hVX, hVY, hG, hM, hB, hR=false, hT=false;
 function startHit(){ curLvl=1; curCombo=0; updateHitUI(); updateBg(1); show('hitScreen'); startTimer('hitTime', endHit); serveHit(); }
 function serveHit(){ if(timeLeft<=0) return; hB=0; hT=false; hR=true; document.getElementById('fbHit').textContent=''; hX=20; hY=(curLvl>=7)?220:160; hVX=3+curLvl*0.7; if(curLvl>=7) hVX*=0.9; if(curLvl<=4){hVY=-4+curLvl*0.5; hM=0;} else {hVY=(curLvl>=7)?0:-1; hM=0.01+(curLvl-5)*0.015;} hG=(curLvl<3)?0.3:0.6; requestAnimationFrame(hitLoop); }
@@ -167,10 +181,10 @@ function hitLoop(){
 function updateHitUI(){ document.getElementById('hitScore').textContent=`${curLvl}.${curCombo}`; }
 function endHit(){ hR=false; clearInterval(gameTimer); finish(); }
 
-/* 4. SIDE SPIN (Curve Power Optimized) */
+// --- 4. SIDE SPIN ---
 let sideX, sideY, sideEX, sideEY, sideSpin, sideAnsw=false, sideRunning=false, sideCorrectCol=0;
 const sideBall=document.getElementById('sideBall'), sideAnim=document.getElementById('sideSpinAnim'), sideW=document.getElementById('sideWrapper');
-const curvePower = 42; // 元の70から40%減
+const curvePower = 42; 
 
 for(let c=0;c<3;c++){
   const col=document.createElement('div'); col.className='side-btn-col';
@@ -187,7 +201,7 @@ function serveSide(){
   const w=sideW.clientWidth, base=(w-220)/2, cols=[base+30, w/2, base+220-30];
   const startIdx=Math.floor(Math.random()*3);
   const endIdx=Math.floor(Math.random()*3);
-  sideCorrectCol=endIdx; sideSpin=Math.floor(Math.random()*3); // 0:CCW, 1:None, 2:CW
+  sideCorrectCol=endIdx; sideSpin=Math.floor(Math.random()*3);
   sideX=cols[startIdx]; sideY=20; sideEX=cols[endIdx]; sideEY=330;
   sideAnim.style.display=(sideSpin===1)?'none':'block'; sideAnim.className='spin-anim '+(sideSpin===0?'ccw':'cw');
   sideAnim.style.left=sideX+'px'; sideAnim.style.top=sideY+'px';
@@ -213,7 +227,7 @@ function judgeSide(b){
 function updateSideUI(){ document.getElementById('sideScore').textContent=`${curLvl}.${curCombo}`; }
 function endSide(){ sideRunning=false; clearInterval(gameTimer); finish(); }
 
-/* FINISH */
+/* FINISH & BACK */
 function finish(){ document.getElementById('finalScore').textContent=`${curLvl}.${curCombo}`; show('endScreen'); }
 function backTop(){ updateBg(1); show('topScreen'); }
 </script>
