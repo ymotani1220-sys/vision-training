@@ -1,56 +1,53 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>横回転判断ゲーム（単体版）</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>横回転判断ゲーム</title>
 
 <style>
 body{
   margin:0;
   background:#1b5e20;
-  font-family:sans-serif;
-  color:#fff;
   display:flex;
   justify-content:center;
+  font-family:sans-serif;
 }
 
 #game{
   width:360px;
   height:640px;
-  position:relative;
   background:#2e7d32;
+  color:#fff;
+  position:relative;
   overflow:hidden;
 }
 
-/* ===== 上部情報 ===== */
+/* ===== 上部 ===== */
 #top{
   display:flex;
   justify-content:space-between;
   padding:8px 12px;
-  font-size:16px;
 }
 
 /* ===== 卓球台 ===== */
 #table-wrap{
   position:relative;
-  width:100%;
-  height:420px;
+  height:440px;
 }
 
 #table{
   position:absolute;
   left:50%;
-  top:40px;
+  top:60px;
   transform:translateX(-50%);
-  width:240px;
-  height:360px;
+  width:230px;
+  height:380px;
   background:#1565c0;
   border:4px solid #fff;
   box-sizing:border-box;
 }
 
-/* ライン */
 #line-center{
   position:absolute;
   left:50%;
@@ -63,8 +60,8 @@ body{
 
 #net{
   position:absolute;
-  left:0;
   top:50%;
+  left:0;
   width:100%;
   height:4px;
   background:#fff;
@@ -83,7 +80,7 @@ body{
 /* ===== 回転矢印 ===== */
 .spin-arrow{
   position:absolute;
-  font-size:42px;
+  font-size:80px;     /* ← 直径2倍 */
   font-weight:bold;
   color:#ffeb3b;
 }
@@ -91,7 +88,7 @@ body{
 /* ===== ボタン ===== */
 #buttons{
   position:absolute;
-  bottom:10px;
+  bottom:12px;
   width:100%;
   display:flex;
   justify-content:space-around;
@@ -100,7 +97,7 @@ body{
 .col{
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:4px;
 }
 
 .btn{
@@ -115,17 +112,29 @@ body{
   content:"";
   position:absolute;
   width:40px;
-  height:2px;
+  height:3px;
   background:#000;
   top:50%;
   left:50%;
   transform-origin:center;
 }
 
-/* ラケット角度 */
 .left::after{ transform:translate(-50%,-50%) rotate(-30deg); }
 .straight::after{ transform:translate(-50%,-50%) rotate(0deg); }
 .right::after{ transform:translate(-50%,-50%) rotate(30deg); }
+
+/* 正誤表示 */
+.judge{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:28px;
+  font-weight:bold;
+}
+
+.correct{ color:#00e676; }
+.wrong{ color:#ff5252; }
 </style>
 </head>
 
@@ -134,7 +143,7 @@ body{
 
   <div id="top">
     <div>TIME 30</div>
-    <div>SCORE 0</div>
+    <div id="score">SCORE 0</div>
   </div>
 
   <div id="table-wrap">
@@ -142,46 +151,47 @@ body{
       <div id="line-center"></div>
       <div id="net"></div>
     </div>
-
     <div id="ball"></div>
   </div>
 
-  <div id="buttons">
-    <!-- 左列 -->
-    <div class="col">
-      <div class="btn left" data-angle="left"></div>
-      <div class="btn straight" data-angle="straight"></div>
-      <div class="btn right" data-angle="right"></div>
-    </div>
-
-    <!-- 中央列 -->
-    <div class="col">
-      <div class="btn left" data-angle="left"></div>
-      <div class="btn straight" data-angle="straight"></div>
-      <div class="btn right" data-angle="right"></div>
-    </div>
-
-    <!-- 右列 -->
-    <div class="col">
-      <div class="btn left" data-angle="left"></div>
-      <div class="btn straight" data-angle="straight"></div>
-      <div class="btn right" data-angle="right"></div>
-    </div>
-  </div>
+  <div id="buttons"></div>
 
 </div>
 
 <script>
-const ball = document.getElementById("ball");
-const table = document.getElementById("table");
 const game = document.getElementById("game");
+const table = document.getElementById("table");
+const ball = document.getElementById("ball");
+const buttons = document.getElementById("buttons");
+const scoreEl = document.getElementById("score");
+
+let score = 0;
+let correctSpin = 0;
+let arrivalCourse = 1;
 
 /*
 spin（プレイヤー目線）
 0 = 反時計回り ⟲ → 右に曲がる
-1 = 回転なし
+1 = 直進
 2 = 時計回り ⟳ → 左に曲がる
 */
+
+const spinMap = { left:2, straight:1, right:0 };
+
+/* ボタン生成 */
+["left","middle","right"].forEach((_,col)=>{
+  const c=document.createElement("div");
+  c.className="col";
+  ["left","straight","right"].forEach(a=>{
+    const b=document.createElement("div");
+    b.className="btn "+a;
+    b.dataset.col=col;
+    b.dataset.angle=a;
+    b.onclick=()=>judge(b);
+    c.appendChild(b);
+  });
+  buttons.appendChild(c);
+});
 
 const serveX = [
   table.offsetLeft + 20,
@@ -189,51 +199,72 @@ const serveX = [
   table.offsetLeft + table.offsetWidth - 44
 ];
 
-function calcArrivalCourse(start, spin){
+function calcArrival(start, spin){
   if(spin===0) return Math.min(2,start+1);
   if(spin===2) return Math.max(0,start-1);
   return start;
 }
 
-function showArrow(x, y, spin){
+function showArrow(x,y,spin){
   if(spin===1) return;
   const a=document.createElement("div");
   a.className="spin-arrow";
   a.textContent= spin===0 ? "⟲" : "⟳";
-  a.style.left = x-8+"px";
-  a.style.top = y-44+"px";
+  a.style.left=x-30+"px";
+  a.style.top=y-70+"px";
   game.appendChild(a);
-  setTimeout(()=>a.remove(),900);
+  setTimeout(()=>a.remove(),1000);
 }
 
 function serve(){
-  const start = Math.floor(Math.random()*3);
-  const spin = Math.floor(Math.random()*3);
-  const arrival = calcArrivalCourse(start,spin);
+  clearJudges();
+  const start=Math.floor(Math.random()*3);
+  correctSpin=Math.floor(Math.random()*3);
+  arrivalCourse=calcArrival(start,correctSpin);
 
-  const startX = serveX[start];
-  const endX = serveX[arrival];
-
-  let y = table.offsetTop + 10;
-  let x = startX;
+  let x=serveX[start];
+  let y=table.offsetTop+10;
   ball.style.display="block";
 
-  showArrow(x,y,spin);
+  showArrow(x,y,correctSpin);
 
-  const curve = [2,0,-2][spin];
+  const curve=[2,0,-2][correctSpin];
 
-  const timer = setInterval(()=>{
-    y += 2;
-    x += curve;
+  const timer=setInterval(()=>{
+    y+=2;
+    x+=curve;
     ball.style.left=x+"px";
     ball.style.top=y+"px";
 
-    if(y > table.offsetTop + table.offsetHeight - 30){
+    if(y>table.offsetTop+table.offsetHeight-30){
       clearInterval(timer);
       ball.style.display="none";
       setTimeout(serve,800);
     }
   },30);
+}
+
+function judge(btn){
+  if(Number(btn.dataset.col)!==arrivalCourse) return;
+
+  const spin=spinMap[btn.dataset.angle];
+  const j=document.createElement("div");
+  j.className="judge";
+
+  if(spin===correctSpin){
+    j.textContent="○";
+    j.classList.add("correct");
+    score+=10;
+    scoreEl.textContent="SCORE "+score;
+  }else{
+    j.textContent="×";
+    j.classList.add("wrong");
+  }
+  btn.appendChild(j);
+}
+
+function clearJudges(){
+  document.querySelectorAll(".judge").forEach(j=>j.remove());
 }
 
 serve();
